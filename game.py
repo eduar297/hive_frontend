@@ -2,6 +2,7 @@ import pygame
 from menu import *
 from math import *
 from tool import *
+from service import *
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -9,6 +10,14 @@ YELLOW = (255, 233, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+
+# Palette
+COLOR1 = (7, 30, 34)
+COLOR2 = (29, 120, 116)
+COLOR3 = (103, 146, 137)
+COLOR4 = (197, 224, 99)
+COLOR5 = (152, 206, 0)
+
 
 LEFT, RIGHT = 1, 3
 
@@ -48,6 +57,8 @@ class Game():
         self.font_name_default = pygame.font.get_default_font()
 
         self.BLACK, self.WHITE, self.YELLOW, self.RED, self.GREEN, self.BLUE = BLACK, WHITE, YELLOW, RED, GREEN, BLUE
+        self.PALETTE = [COLOR1, COLOR2, COLOR3, COLOR4, COLOR5]
+
         self.main_menu = MainMenu(self)
         self.options_menu = OptionsMenu(self)
         self.credits_menu = CreditsMenu(self)
@@ -57,6 +68,14 @@ class Game():
 
         self.hex_selected = None
         self.hex_hover = None
+
+        # game stats
+        stats = game_stats()
+        self.p1 = stats[1]
+        self.p2 = stats[2]
+        self.hive = stats[3]
+        current_player_id = stats[0]
+        self.current_player = self.p1 if current_player_id == 'p1' else self.p2
 
         self.init_board()
 
@@ -105,7 +124,7 @@ class Game():
 
         # recalculate hexagons coordinates
         for h in self.hexagons:
-            p = Hex.oddr_offset_to_pixel(h.hex, size)
+            p = Hex.pointy_hex_to_pixel(h.hex, size)
             h.update(center=Point(self.CENTER.x+p.x, self.CENTER.y+p.y))
 
     def handle_mouse_motion(self):
@@ -200,6 +219,8 @@ class Game():
                          self.rect_center_region, 1)
 
         self.draw_menu_up()
+        self.draw_menu_left()
+        self.draw_menu_right()
 
     def draw_text(self, text, size, x, y, color=WHITE, _font=None):
         if not _font:
@@ -223,26 +244,20 @@ class Game():
 
         for d in ad:
             from random import randint
-            r1 = randint(0, 2)
-            r2 = randint(0, 4)
-            p = Hex.oddr_offset_to_pixel(d, size)
+            r1 = randint(0, 6)
+            r2 = randint(0, 2)
+            p = Hex.pointy_hex_to_pixel(d, size)
             h = Hexagon(Point(center.x + p.x, center.y + p.y),
-                        size, d, self.YELLOW)
+                        size, d, self.PALETTE[0])
             h.update(value=r1)
             if d.q == 0 and d.r == 0:
-                h.color = self.RED
-                h.value=0
+                h.color = self.PALETTE[3]
+                h.value = 0
             else:
                 if r2 == 0:
-                    h.update(color=self.RED)
-                if r2 == 1:
-                    h.update(color=self.GREEN)
-                if r2 == 2:
-                    h.update(color=self.BLUE)
-                if r2 == 3:
-                    h.update(color=self.YELLOW)
+                    h.update(color=self.PALETTE[1])
                 if d.q == 0 and d.r == 0:
-                    h.color = self.RED
+                    h.color = self.PALETTE[3]
 
             self.hexagons.append(h)
 
@@ -255,21 +270,18 @@ class Game():
             y = h.center.y
 
             rcr = self.rect_center_region
-            if 1:
-                # if(x-h.w/2 >= rcr.topleft[0] and y >= rcr.topleft[1] and x+h.w/2 <= rcr.bottomright[0] and y <= rcr.bottomright[1]):
-                if h.value and h.value == 1:
-                    pygame.draw.lines(
-                        self.display, self.WHITE, True, h.points, 4)
-                    pygame.draw.polygon(self.display, h.color, h.points)
-                # self.draw_text(str(h.hex), 12, h.center.x,
-                #    h.center.y, self.WHITE, self.font_name_default)
-
-                if h.hex.point.point == (0, 0):
-                    hex_center = h
-                if self.hex_hover and self.hex_hover.point.point == h.hex.point.point:
-                    hex_hover = self.hex_hover
-                if self.hex_selected and self.hex_selected.point.point == h.hex.point.point:
-                    hex_selected = self.hex_selected
+            if h.value and h.value == 1:
+                pygame.draw.lines(
+                    self.display, self.WHITE, True, h.points, 4)
+                pygame.draw.polygon(self.display, h.color, h.points)
+            if h.hex.point.point == (0, 0):
+                hex_center = h
+            if self.hex_hover and self.hex_hover.point.point == h.hex.point.point:
+                hex_hover = self.hex_hover
+                self.draw_text(str(h.hex), 12, h.center.x,
+                               h.center.y, self.WHITE, self.font_name_default)
+            if self.hex_selected and self.hex_selected.point.point == h.hex.point.point:
+                hex_selected = self.hex_selected
 
         if hex_center:
             pygame.draw.lines(
@@ -277,23 +289,176 @@ class Game():
         if hex_hover:
             h = next((
                 h for h in self.hexagons if h.hex.point.point == hex_hover.point.point), None)
-            _h = Hexagon(h.center, h.size+4, h.hex, h.color)
+            _h = Hexagon(h.center, h.size+2, h.hex, h.color)
             pygame.draw.lines(
                 self.display, self.WHITE, True, _h.points, 4)
         if hex_selected:
             h = next((
                 h for h in self.hexagons if h.hex.point.point == hex_selected.point.point), None)
-            _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+            _h = Hexagon(h.center, h.size+1, h.hex, h.color)
             pygame.draw.lines(
-                self.display, self.BLUE, True, _h.points, 4)
+                self.display, self.PALETTE[3], True, _h.points, 4)
 
     def draw_menu_up(self):
         rect = self.rect_up_region
-        if self.hex_hover:
-            self.draw_text(f'{str(self.current_region)}, hex: {self.hex_hover}', 15, rect.centerx,
-                           rect.centery, self.RED, self.font_name_default)
+        self.draw_text(f"{self.current_player.name}'s turn", 15,
+                       rect.centerx, rect.centery, self.WHITE, self.font_name_default)
 
         self.draw_menu_arrow()
+
+    def draw_menu_left(self):
+        rect = self.rect_left_region
+        # collidepoint = rect.collidepoint(self.MOUSE_POS)
+        hexagon_size = self.hexagon_size
+        insects = []
+
+        self.draw_text(f'{self.p1.name}', 15,
+                       rect.centerx, rect.topleft[1]+20, self.WHITE, self.font_name_default)
+        self.draw_text(f'Number of Moves: {self.p1.number_of_moves}', 10,
+                       rect.centerx, rect.topleft[1]+40, self.WHITE, self.font_name_default)
+
+        insects = self.p1.non_placed_insects
+
+        hexagons = []
+
+        queen_bee_count = 0
+        beetle_count = 0
+        grasshopper_count = 0
+        spider_count = 0
+        soldier_ant_count = 0
+        ladybug_count = 0
+        mosquito_count = 0
+        pillbug_count = 0
+
+        size = hexagon_size-11
+        w = sqrt(3)*size
+        h = 2*size+10
+        x = rect.midtop[0]-w/6
+        y = rect.midtop[1] + 95
+
+        for insect in insects:
+            if insect[0] == 'queen_bee':
+                hex = Hexagon(Point(x+w/5*queen_bee_count, y+h*0),
+                              size, None, self.PALETTE[0], insect[0])
+                queen_bee_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'beetle':
+                hex = Hexagon(Point(x+w/5*beetle_count, y+h*1),
+                              size, None, self.PALETTE[0], insect[0])
+                beetle_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'grasshopper':
+                hex = Hexagon(Point(x+w/5*grasshopper_count, y+h*2),
+                              size, None, self.PALETTE[0], insect[0])
+                grasshopper_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'spider':
+                hex = Hexagon(Point(x+w/5*spider_count, y+h*3),
+                              size, None, self.PALETTE[0], insect[0])
+                spider_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'soldier_ant':
+                hex = Hexagon(Point(x+w/5*soldier_ant_count, y+h*4),
+                              size, None, self.PALETTE[0], insect[0])
+                soldier_ant_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'ladybug':
+                hex = Hexagon(Point(x+w/5*ladybug_count, y+h*5),
+                              size, None, self.PALETTE[0], insect[0])
+                ladybug_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'mosquito':
+                hex = Hexagon(Point(x+w/5*mosquito_count, y+h*6),
+                              size, None, self.PALETTE[0], insect[0])
+                mosquito_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'pillbug':
+                hex = Hexagon(Point(x+w/5*pillbug_count, y+h*7),
+                              size, None, self.PALETTE[0], insect[0])
+                pillbug_count += 1
+                hexagons.append(hex)
+
+        for h in hexagons:
+            pygame.draw.lines(self.display, self.WHITE, True, h.points, 4)
+            pygame.draw.polygon(self.display, h.color, h.points)
+            self.draw_text(h.value, 8, h.center.x, h.center.y, self.WHITE, self.font_name_default)
+
+    def draw_menu_right(self):
+        rect = self.rect_right_region
+        # collidepoint = rect.collidepoint(self.MOUSE_POS)
+        hexagon_size = self.hexagon_size
+        insects = []
+
+        self.draw_text(f'{self.p2.name}', 15,
+                       rect.centerx, rect.topleft[1]+20, self.WHITE, self.font_name_default)
+        self.draw_text(f'Number of Moves: {self.p2.number_of_moves}', 10,
+                       rect.centerx, rect.topleft[1]+40, self.WHITE, self.font_name_default)
+
+        insects = self.p2.non_placed_insects
+
+        hexagons = []
+
+        queen_bee_count = 0
+        beetle_count = 0
+        grasshopper_count = 0
+        spider_count = 0
+        soldier_ant_count = 0
+        ladybug_count = 0
+        mosquito_count = 0
+        pillbug_count = 0
+
+        size = hexagon_size-11
+        w = sqrt(3)*size
+        h = 2*size+10
+        x = rect.midtop[0]+w/6
+        y = rect.midtop[1] + 95
+
+        for insect in insects:
+            if insect[0] == 'queen_bee':
+                hex = Hexagon(Point(x+w/5*queen_bee_count, y+h*0),
+                              size, None, self.PALETTE[1], insect[0])
+                queen_bee_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'beetle':
+                hex = Hexagon(Point(x-w/5*beetle_count, y+h*1),
+                              size, None, self.PALETTE[1], insect[0])
+                beetle_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'grasshopper':
+                hex = Hexagon(Point(x-w/5*grasshopper_count, y+h*2),
+                              size, None, self.PALETTE[1], insect[0])
+                grasshopper_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'spider':
+                hex = Hexagon(Point(x-w/5*spider_count, y+h*3),
+                              size, None, self.PALETTE[1], insect[0])
+                spider_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'soldier_ant':
+                hex = Hexagon(Point(x-w/5*soldier_ant_count, y+h*4),
+                              size, None, self.PALETTE[1], insect[0])
+                soldier_ant_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'ladybug':
+                hex = Hexagon(Point(x-w/5*ladybug_count, y+h*5),
+                              size, None, self.PALETTE[1], insect[0])
+                ladybug_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'mosquito':
+                hex = Hexagon(Point(x-w/5*mosquito_count, y+h*6),
+                              size, None, self.PALETTE[1], insect[0])
+                mosquito_count += 1
+                hexagons.append(hex)
+            elif insect[0] == 'pillbug':
+                hex = Hexagon(Point(x-w/5*pillbug_count, y+h*7),
+                              size, None, self.PALETTE[1], insect[0])
+                pillbug_count += 1
+                hexagons.append(hex)
+
+        for h in hexagons:
+            pygame.draw.lines(self.display, self.WHITE, True, h.points, 4)
+            pygame.draw.polygon(self.display, h.color, h.points)
+            self.draw_text(h.value, 8, h.center.x, h.center.y, self.WHITE, self.font_name_default)
 
     def draw_menu_arrow(self):
         r = self.rect_arrow_region
@@ -323,18 +488,18 @@ class Game():
             if right_btn.collidepoint(self.MOUSE_POS):
                 self.handle_arrow_btn('R')
 
-        pygame.draw.rect(self.display, self.WHITE, top_btn, 0)
-        pygame.draw.rect(self.display, self.WHITE, bottom_btn, 0)
-        pygame.draw.rect(self.display, self.WHITE, left_btn, 0)
-        pygame.draw.rect(self.display, self.WHITE, right_btn, 0)
+        pygame.draw.rect(self.display, self.PALETTE[2], top_btn, 0)
+        pygame.draw.rect(self.display, self.PALETTE[2], bottom_btn, 0)
+        pygame.draw.rect(self.display, self.PALETTE[2], left_btn, 0)
+        pygame.draw.rect(self.display, self.PALETTE[2], right_btn, 0)
         self.draw_text('U', 15,  top_btn.centerx, top_btn.centery,
-                       self.BLACK, self.font_name_default)
+                       self.PALETTE[0], self.font_name_default)
         self.draw_text('D', 15,  bottom_btn.centerx,
-                       bottom_btn.centery, self.BLACK, self.font_name_default)
+                       bottom_btn.centery, self.PALETTE[0], self.font_name_default)
         self.draw_text('L', 15,  left_btn.centerx,
-                       left_btn.centery, self.BLACK, self.font_name_default)
+                       left_btn.centery, self.PALETTE[0], self.font_name_default)
         self.draw_text('R', 15,  right_btn.centerx,
-                       right_btn.centery, self.BLACK, self.font_name_default)
+                       right_btn.centery, self.PALETTE[0], self.font_name_default)
 
     def handle_arrow_btn(self, btn):
         if btn == 'L':

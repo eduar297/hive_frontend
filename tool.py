@@ -103,6 +103,7 @@ class Hex:
         ad = []
         for _q in range(q1, q2+1):
             for _r in range(r1, r2+1):
+                # ad.append(Hex.axial_to_oddr(Hex(_q, _r)))
                 ad.append(Hex(_q, _r))
         return ad
 
@@ -116,8 +117,14 @@ class Hex:
         r = (2/3 * point.y) / size
         return Hex.hex_round(Hex(q, r))
 
+    def pointy_hex_to_pixel(hex, size):
+        x = size * (sqrt(3) * hex.q + sqrt(3)/2 * hex.r)
+        y = size * (3./2 * hex.r)
+        return Point(x, y)
+
     def hex_round(hex):
-        return Hex.cube_to_oddr(Cube.cube_round(Hex.axial_to_cube(hex)))
+        # return Hex.cube_to_oddr(Cube.cube_round(Hex.axial_to_cube(hex)))
+        return Hex.cube_to_axial(Cube.cube_round(Hex.axial_to_cube(hex)))
 
     def cube_to_axial(cube):
         q = cube.x
@@ -140,3 +147,13 @@ class Hex:
         r = hex.r
         s = -q-r
         return Cube(q, r, s)
+
+    def axial_to_oddr(hex):
+        col = hex.q + (hex.r - (hex.r & 1)) // 2
+        row = hex.r
+        return Hex(col, row)
+
+    def oddr_to_axial(hex):
+        q = hex.q - (hex.r - (hex.r & 1)) // 2
+        r = hex.r
+        return Hex(q, r)
