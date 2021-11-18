@@ -78,6 +78,8 @@ class Game():
         self.current_player = self.p1 if current_player_id == 'p1' else self.p2
         self.hexagon_hand_size = self.hexagon_size - 11
 
+        self.possible_placements = None
+
         self.update_stats(self.p1)
         self.update_stats(self.p2)
 
@@ -284,8 +286,6 @@ class Game():
     def handle_mouse_click(self):
         if self.current_region == 'center':
             self.handle_board_mouse_click()
-            self.p1.hex_hand_selected = None
-            self.p2.hex_hand_selected = None
         if self.current_region == 'up':
             self.hex_selected = None
             self.p1.hex_hand_selected = None
@@ -390,7 +390,7 @@ class Game():
             h = Hexagon(Point(center.x + p.x, center.y + p.y),
                         size, d, self.PALETTE[0])
             if d.q == 0 and d.r == 0:
-                h.color = self.PALETTE[3]
+                h.color = self.RED
                 h.value = 0
 
             self.back_hexagons.append(h)
@@ -404,10 +404,33 @@ class Game():
             y = h.center.y
 
             rcr = self.rect_center_region
-            # if h.value and h.value == 1:
-            #     pygame.draw.lines(
-            #         self.display, self.WHITE, True, h.points, 4)
-            #     pygame.draw.polygon(self.display, h.color, h.points)
+
+            if self.possible_placements:
+                for pp in self.possible_placements:
+                    if h.hex.q == pp[0] and h.hex.r == pp[1]:
+                        _h = Hexagon(h.center, h.size-4, h.hex, h.color)
+                        pygame.draw.lines(
+                            self.display, self.PALETTE[4], True, _h.points, 4)
+
+            for insect in self.hive:
+                type = insect[0]
+                pid = insect[2]
+                hex = insect[3]
+
+                if h.hex.q == hex[0] and h.hex.r == hex[1]:
+                    pygame.draw.lines(
+                        self.display, self.WHITE, True, h.points, 4)
+                    if pid == 'p1':
+                        pygame.draw.polygon(
+                            self.display, self.PALETTE[0], h.points)
+                        self.draw_text(type, 9, h.center.x, h.center.y,
+                                       self.WHITE, self.font_name_default)
+                    if pid == 'p2':
+                        pygame.draw.polygon(
+                            self.display, self.PALETTE[1], h.points)
+                        self.draw_text(type, 9, h.center.x, h.center.y,
+                                       self.WHITE, self.font_name_default)
+
             if h.hex.point.point == (0, 0):
                 hex_center = h
             if self.hex_hover and self.hex_hover.point.point == h.hex.point.point:
@@ -417,13 +440,10 @@ class Game():
             if self.hex_selected and self.hex_selected.point.point == h.hex.point.point:
                 hex_selected = self.hex_selected
 
-        if hex_center:
-            pygame.draw.lines(
-                self.display, hex_center.color, True, hex_center.points, 4)
         if hex_hover:
             h = next((
                 h for h in self.back_hexagons if h.hex.point.point == hex_hover.point.point), None)
-            _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+            _h = Hexagon(h.center, h.size+1, h.hex, h.color)
             pygame.draw.lines(
                 self.display, self.WHITE, True, _h.points, 4)
         if hex_selected:
@@ -432,6 +452,11 @@ class Game():
             _h = Hexagon(h.center, h.size+1, h.hex, h.color)
             pygame.draw.lines(
                 self.display, self.PALETTE[3], True, _h.points, 4)
+        if hex_center:
+            pygame.draw.circle(
+                self.display, self.PALETTE[2], hex_center.center.point, 5, 0)
+            pygame.draw.circle(
+                self.display, self.WHITE, hex_center.center.point, 5, 1)
 
     def draw_menu_up(self):
         rect = self.rect_up_region
@@ -456,18 +481,20 @@ class Game():
             pygame.draw.polygon(self.display, h.color, h.points)
             self.draw_text(h.value, 8, h.center.x, h.center.y,
                            self.WHITE, self.font_name_default)
-        
+
         if self.p1.hex_hand_hover:
             for h in self.p1.hexagons_hand[::-1]:
                 if h.value == self.p1.hex_hand_hover.value:
                     _h = Hexagon(h.center, h.size+2, h.hex, h.color)
-                    pygame.draw.lines(self.display, self.WHITE, True, _h.points, 4)
+                    pygame.draw.lines(
+                        self.display, self.WHITE, True, _h.points, 4)
                     break
         if self.p1.hex_hand_selected:
             for h in self.p1.hexagons_hand[::-1]:
                 if h.value == self.p1.hex_hand_selected.value:
                     _h = Hexagon(h.center, h.size+2, h.hex, h.color)
-                    pygame.draw.lines(self.display, self.PALETTE[3], True, _h.points, 4)
+                    pygame.draw.lines(
+                        self.display, self.PALETTE[3], True, _h.points, 4)
                     break
 
     def draw_menu_right(self):
@@ -486,18 +513,20 @@ class Game():
             pygame.draw.polygon(self.display, h.color, h.points)
             self.draw_text(h.value, 8, h.center.x, h.center.y,
                            self.WHITE, self.font_name_default)
-        
+
         if self.p2.hex_hand_hover:
             for h in self.p2.hexagons_hand[::-1]:
                 if h.value == self.p2.hex_hand_hover.value:
                     _h = Hexagon(h.center, h.size+2, h.hex, h.color)
-                    pygame.draw.lines(self.display, self.WHITE, True, _h.points, 4)
+                    pygame.draw.lines(
+                        self.display, self.WHITE, True, _h.points, 4)
                     break
         if self.p2.hex_hand_selected:
             for h in self.p2.hexagons_hand[::-1]:
                 if h.value == self.p2.hex_hand_selected.value:
                     _h = Hexagon(h.center, h.size+2, h.hex, h.color)
-                    pygame.draw.lines(self.display, self.PALETTE[3], True, _h.points, 4)
+                    pygame.draw.lines(
+                        self.display, self.PALETTE[3], True, _h.points, 4)
                     break
 
     def draw_menu_arrow(self):
@@ -603,11 +632,37 @@ class Game():
 
     def handle_board_mouse_click(self):
         self.hex_selected = Hex(self.hex_hover.q, self.hex_hover.r)
-    
+
+        if self.possible_placements:
+            for pp in self.possible_placements:
+                if self.hex_selected.q == pp[0] and self.hex_selected.r == pp[1]:
+                    place_insect(
+                        self.current_player.hex_hand_selected.value, pp)
+                    # game stats
+                    stats = get_game_stats()
+                    current_player_id = stats[0]
+                    self.hive = stats[3]
+
+                    if current_player_id == 'p1':
+                        self.p2 = stats[2]
+                        self.update_stats(self.p2)
+                        self.current_player = self.p1
+                    elif current_player_id == 'p2':
+                        self.p1 = stats[1]
+                        self.update_stats(self.p1)
+                        self.current_player = self.p2
+
+                    self.possible_placements = None
+                    break
+
     def handle_left_mouse_click(self):
+        self.possible_placements = None
         if self.p1.hex_hand_hover and self.current_player.id == 'p1':
             self.p1.hex_hand_selected = self.p1.hex_hand_hover
+            self.possible_placements = get_possible_placements()
 
     def handle_right_mouse_click(self):
+        self.possible_placements = None
         if self.p2.hex_hand_hover and self.current_player.id == 'p2':
             self.p2.hex_hand_selected = self.p2.hex_hand_hover
+            self.possible_placements = get_possible_placements()

@@ -10,7 +10,7 @@ class Player():
         self.non_placed_insects = non_placed_insects
         self.number_of_moves = number_of_moves
         self.queen_bee_placed = queen_bee_placed
-        self.hexagons_hand = []
+        self.hexagons_hand = None
         self.hex_hand_selected = None
         self.hex_hand_hover = None
 
