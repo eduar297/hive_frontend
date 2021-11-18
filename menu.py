@@ -134,7 +134,8 @@ class MainMenu(Menu):
             if self.state == 'PVP':
                 self.game.playing = True
             elif self.state == 'PVAI':
-                self.game.playing = True
+                # self.game.playing = True
+                pass
             elif self.state == 'Options':
                 self.game.curr_menu = self.game.options_menu
             elif self.state == 'Credits':

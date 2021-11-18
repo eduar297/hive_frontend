@@ -34,7 +34,7 @@ class Game():
         self.MOUSE_MOTION = False
 
         self.hexagon_size = 40
-        self.hexagons = []
+        self.back_hexagons = []
 
         self.CENTER = Point(self.DISPLAY_W/2, self.DISPLAY_H/2)
 
@@ -70,14 +70,152 @@ class Game():
         self.hex_hover = None
 
         # game stats
-        stats = game_stats()
+        stats = get_game_stats()
         self.p1 = stats[1]
         self.p2 = stats[2]
         self.hive = stats[3]
         current_player_id = stats[0]
         self.current_player = self.p1 if current_player_id == 'p1' else self.p2
+        self.hexagon_hand_size = self.hexagon_size - 11
+
+        self.update_stats(self.p1)
+        self.update_stats(self.p2)
 
         self.init_board()
+
+    def update_stats(self, player):
+        if player.id == 'p1':
+            rect = self.rect_left_region
+        elif player.id == 'p2':
+            rect = self.rect_right_region
+
+        insects = player.non_placed_insects
+
+        hexagons = []
+
+        queen_bee_count = 0
+        beetle_count = 0
+        grasshopper_count = 0
+        spider_count = 0
+        soldier_ant_count = 0
+        ladybug_count = 0
+        mosquito_count = 0
+        pillbug_count = 0
+
+        size = self.hexagon_hand_size
+        w = sqrt(3)*size
+        h = 2*size+10
+        if player.id == 'p1':
+            x = rect.midtop[0]-w/6
+        elif player.id == 'p2':
+            x = rect.midtop[0]+w/6
+        y = rect.midtop[1] + 95
+
+        if player.id == 'p1':
+            for insect in insects:
+                if insect[0] == 'queen_bee':
+                    p = Point(x+w/5*queen_bee_count, y+h*0)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    queen_bee_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'beetle':
+                    p = Point(x+w/5*beetle_count, y+h*1)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    beetle_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'grasshopper':
+                    p = Point(x+w/5*grasshopper_count, y+h*2)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    grasshopper_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'spider':
+                    p = Point(x+w/5*spider_count, y+h*3)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    spider_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'soldier_ant':
+                    p = Point(x+w/5*soldier_ant_count, y+h*4)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    soldier_ant_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'ladybug':
+                    p = Point(x+w/5*ladybug_count, y+h*5)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    ladybug_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'mosquito':
+                    p = Point(x+w/5*mosquito_count, y+h*6)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    mosquito_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'pillbug':
+                    p = Point(x+w/5*pillbug_count, y+h*7)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[0], insect[0])
+                    pillbug_count += 1
+                    hexagons.append(hexagon)
+        if player.id == 'p2':
+            for insect in insects:
+                if insect[0] == 'queen_bee':
+                    p = Point(x-w/5*queen_bee_count, y+h*0)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    queen_bee_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'beetle':
+                    p = Point(x-w/5*beetle_count, y+h*1)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    beetle_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'grasshopper':
+                    p = Point(x-w/5*grasshopper_count, y+h*2)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    grasshopper_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'spider':
+                    p = Point(x-w/5*spider_count, y+h*3)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    spider_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'soldier_ant':
+                    p = Point(x-w/5*soldier_ant_count, y+h*4)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    soldier_ant_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'ladybug':
+                    p = Point(x-w/5*ladybug_count, y+h*5)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    ladybug_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'mosquito':
+                    p = Point(x-w/5*mosquito_count, y+h*6)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    mosquito_count += 1
+                    hexagons.append(hexagon)
+                elif insect[0] == 'pillbug':
+                    p = Point(x-w/5*pillbug_count, y+h*7)
+                    hex = Hex.pixel_to_pointy_hex(p, size)
+                    hexagon = Hexagon(p, size, hex, self.PALETTE[1], insect[0])
+                    pillbug_count += 1
+                    hexagons.append(hexagon)
+
+        if player.id == 'p1':
+            self.p1.hexagons_hand = hexagons
+        elif player.id == 'p2':
+            self.p2.hexagons_hand = hexagons
 
     def game_loop(self):
         while self.playing:
@@ -123,7 +261,7 @@ class Game():
             self.CENTER.translate(self.CENTER.x+dw, self.CENTER.y)
 
         # recalculate hexagons coordinates
-        for h in self.hexagons:
+        for h in self.back_hexagons:
             p = Hex.pointy_hex_to_pixel(h.hex, size)
             h.update(center=Point(self.CENTER.x+p.x, self.CENTER.y+p.y))
 
@@ -146,15 +284,20 @@ class Game():
     def handle_mouse_click(self):
         if self.current_region == 'center':
             self.handle_board_mouse_click()
+            self.p1.hex_hand_selected = None
+            self.p2.hex_hand_selected = None
         if self.current_region == 'up':
-            # self.hex_selected = None
-            pass
+            self.hex_selected = None
+            self.p1.hex_hand_selected = None
+            self.p2.hex_hand_selected = None
         if self.current_region == 'left':
-            pass
+            self.handle_left_mouse_click()
             self.hex_selected = None
+            self.p2.hex_hand_selected = None
         if self.current_region == 'right':
-            pass
+            self.handle_right_mouse_click()
             self.hex_selected = None
+            self.p1.hex_hand_selected = None
 
     def is_in_rect(self, p, rect):
         x = p[0]
@@ -243,37 +386,28 @@ class Game():
         ad = Hex.axial_directions(q1=-20, q2=20, r1=-20, r2=20)
 
         for d in ad:
-            from random import randint
-            r1 = randint(0, 6)
-            r2 = randint(0, 2)
             p = Hex.pointy_hex_to_pixel(d, size)
             h = Hexagon(Point(center.x + p.x, center.y + p.y),
                         size, d, self.PALETTE[0])
-            h.update(value=r1)
             if d.q == 0 and d.r == 0:
                 h.color = self.PALETTE[3]
                 h.value = 0
-            else:
-                if r2 == 0:
-                    h.update(color=self.PALETTE[1])
-                if d.q == 0 and d.r == 0:
-                    h.color = self.PALETTE[3]
 
-            self.hexagons.append(h)
+            self.back_hexagons.append(h)
 
     def draw_board(self):
         hex_hover = None
         hex_selected = None
         hex_center = None
-        for h in self.hexagons:
+        for h in self.back_hexagons:
             x = h.center.x
             y = h.center.y
 
             rcr = self.rect_center_region
-            if h.value and h.value == 1:
-                pygame.draw.lines(
-                    self.display, self.WHITE, True, h.points, 4)
-                pygame.draw.polygon(self.display, h.color, h.points)
+            # if h.value and h.value == 1:
+            #     pygame.draw.lines(
+            #         self.display, self.WHITE, True, h.points, 4)
+            #     pygame.draw.polygon(self.display, h.color, h.points)
             if h.hex.point.point == (0, 0):
                 hex_center = h
             if self.hex_hover and self.hex_hover.point.point == h.hex.point.point:
@@ -288,13 +422,13 @@ class Game():
                 self.display, hex_center.color, True, hex_center.points, 4)
         if hex_hover:
             h = next((
-                h for h in self.hexagons if h.hex.point.point == hex_hover.point.point), None)
+                h for h in self.back_hexagons if h.hex.point.point == hex_hover.point.point), None)
             _h = Hexagon(h.center, h.size+2, h.hex, h.color)
             pygame.draw.lines(
                 self.display, self.WHITE, True, _h.points, 4)
         if hex_selected:
             h = next((
-                h for h in self.hexagons if h.hex.point.point == hex_selected.point.point), None)
+                h for h in self.back_hexagons if h.hex.point.point == hex_selected.point.point), None)
             _h = Hexagon(h.center, h.size+1, h.hex, h.color)
             pygame.draw.lines(
                 self.display, self.PALETTE[3], True, _h.points, 4)
@@ -308,157 +442,63 @@ class Game():
 
     def draw_menu_left(self):
         rect = self.rect_left_region
-        # collidepoint = rect.collidepoint(self.MOUSE_POS)
-        hexagon_size = self.hexagon_size
-        insects = []
 
         self.draw_text(f'{self.p1.name}', 15,
                        rect.centerx, rect.topleft[1]+20, self.WHITE, self.font_name_default)
         self.draw_text(f'Number of Moves: {self.p1.number_of_moves}', 10,
                        rect.centerx, rect.topleft[1]+40, self.WHITE, self.font_name_default)
+        if self.p1.hex_hand_selected:
+            self.draw_text(f'{self.p1.hex_hand_selected.value}', 12,
+                           rect.centerx, rect.topleft[1]+55, self.WHITE, self.font_name_default)
 
-        insects = self.p1.non_placed_insects
-
-        hexagons = []
-
-        queen_bee_count = 0
-        beetle_count = 0
-        grasshopper_count = 0
-        spider_count = 0
-        soldier_ant_count = 0
-        ladybug_count = 0
-        mosquito_count = 0
-        pillbug_count = 0
-
-        size = hexagon_size-11
-        w = sqrt(3)*size
-        h = 2*size+10
-        x = rect.midtop[0]-w/6
-        y = rect.midtop[1] + 95
-
-        for insect in insects:
-            if insect[0] == 'queen_bee':
-                hex = Hexagon(Point(x+w/5*queen_bee_count, y+h*0),
-                              size, None, self.PALETTE[0], insect[0])
-                queen_bee_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'beetle':
-                hex = Hexagon(Point(x+w/5*beetle_count, y+h*1),
-                              size, None, self.PALETTE[0], insect[0])
-                beetle_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'grasshopper':
-                hex = Hexagon(Point(x+w/5*grasshopper_count, y+h*2),
-                              size, None, self.PALETTE[0], insect[0])
-                grasshopper_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'spider':
-                hex = Hexagon(Point(x+w/5*spider_count, y+h*3),
-                              size, None, self.PALETTE[0], insect[0])
-                spider_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'soldier_ant':
-                hex = Hexagon(Point(x+w/5*soldier_ant_count, y+h*4),
-                              size, None, self.PALETTE[0], insect[0])
-                soldier_ant_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'ladybug':
-                hex = Hexagon(Point(x+w/5*ladybug_count, y+h*5),
-                              size, None, self.PALETTE[0], insect[0])
-                ladybug_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'mosquito':
-                hex = Hexagon(Point(x+w/5*mosquito_count, y+h*6),
-                              size, None, self.PALETTE[0], insect[0])
-                mosquito_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'pillbug':
-                hex = Hexagon(Point(x+w/5*pillbug_count, y+h*7),
-                              size, None, self.PALETTE[0], insect[0])
-                pillbug_count += 1
-                hexagons.append(hex)
-
-        for h in hexagons:
+        for h in self.p1.hexagons_hand:
             pygame.draw.lines(self.display, self.WHITE, True, h.points, 4)
             pygame.draw.polygon(self.display, h.color, h.points)
-            self.draw_text(h.value, 8, h.center.x, h.center.y, self.WHITE, self.font_name_default)
+            self.draw_text(h.value, 8, h.center.x, h.center.y,
+                           self.WHITE, self.font_name_default)
+        
+        if self.p1.hex_hand_hover:
+            for h in self.p1.hexagons_hand[::-1]:
+                if h.value == self.p1.hex_hand_hover.value:
+                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    pygame.draw.lines(self.display, self.WHITE, True, _h.points, 4)
+                    break
+        if self.p1.hex_hand_selected:
+            for h in self.p1.hexagons_hand[::-1]:
+                if h.value == self.p1.hex_hand_selected.value:
+                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    pygame.draw.lines(self.display, self.PALETTE[3], True, _h.points, 4)
+                    break
 
     def draw_menu_right(self):
         rect = self.rect_right_region
-        # collidepoint = rect.collidepoint(self.MOUSE_POS)
-        hexagon_size = self.hexagon_size
-        insects = []
 
         self.draw_text(f'{self.p2.name}', 15,
                        rect.centerx, rect.topleft[1]+20, self.WHITE, self.font_name_default)
         self.draw_text(f'Number of Moves: {self.p2.number_of_moves}', 10,
                        rect.centerx, rect.topleft[1]+40, self.WHITE, self.font_name_default)
+        if self.p2.hex_hand_selected:
+            self.draw_text(f'{self.p2.hex_hand_selected.value}', 12,
+                           rect.centerx, rect.topleft[1]+55, self.WHITE, self.font_name_default)
 
-        insects = self.p2.non_placed_insects
-
-        hexagons = []
-
-        queen_bee_count = 0
-        beetle_count = 0
-        grasshopper_count = 0
-        spider_count = 0
-        soldier_ant_count = 0
-        ladybug_count = 0
-        mosquito_count = 0
-        pillbug_count = 0
-
-        size = hexagon_size-11
-        w = sqrt(3)*size
-        h = 2*size+10
-        x = rect.midtop[0]+w/6
-        y = rect.midtop[1] + 95
-
-        for insect in insects:
-            if insect[0] == 'queen_bee':
-                hex = Hexagon(Point(x+w/5*queen_bee_count, y+h*0),
-                              size, None, self.PALETTE[1], insect[0])
-                queen_bee_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'beetle':
-                hex = Hexagon(Point(x-w/5*beetle_count, y+h*1),
-                              size, None, self.PALETTE[1], insect[0])
-                beetle_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'grasshopper':
-                hex = Hexagon(Point(x-w/5*grasshopper_count, y+h*2),
-                              size, None, self.PALETTE[1], insect[0])
-                grasshopper_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'spider':
-                hex = Hexagon(Point(x-w/5*spider_count, y+h*3),
-                              size, None, self.PALETTE[1], insect[0])
-                spider_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'soldier_ant':
-                hex = Hexagon(Point(x-w/5*soldier_ant_count, y+h*4),
-                              size, None, self.PALETTE[1], insect[0])
-                soldier_ant_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'ladybug':
-                hex = Hexagon(Point(x-w/5*ladybug_count, y+h*5),
-                              size, None, self.PALETTE[1], insect[0])
-                ladybug_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'mosquito':
-                hex = Hexagon(Point(x-w/5*mosquito_count, y+h*6),
-                              size, None, self.PALETTE[1], insect[0])
-                mosquito_count += 1
-                hexagons.append(hex)
-            elif insect[0] == 'pillbug':
-                hex = Hexagon(Point(x-w/5*pillbug_count, y+h*7),
-                              size, None, self.PALETTE[1], insect[0])
-                pillbug_count += 1
-                hexagons.append(hex)
-
-        for h in hexagons:
+        for h in self.p2.hexagons_hand:
             pygame.draw.lines(self.display, self.WHITE, True, h.points, 4)
             pygame.draw.polygon(self.display, h.color, h.points)
-            self.draw_text(h.value, 8, h.center.x, h.center.y, self.WHITE, self.font_name_default)
+            self.draw_text(h.value, 8, h.center.x, h.center.y,
+                           self.WHITE, self.font_name_default)
+        
+        if self.p2.hex_hand_hover:
+            for h in self.p2.hexagons_hand[::-1]:
+                if h.value == self.p2.hex_hand_hover.value:
+                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    pygame.draw.lines(self.display, self.WHITE, True, _h.points, 4)
+                    break
+        if self.p2.hex_hand_selected:
+            for h in self.p2.hexagons_hand[::-1]:
+                if h.value == self.p2.hex_hand_selected.value:
+                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    pygame.draw.lines(self.display, self.PALETTE[3], True, _h.points, 4)
+                    break
 
     def draw_menu_arrow(self):
         r = self.rect_arrow_region
@@ -512,6 +552,9 @@ class Game():
             self.DOWN_KEY = True
 
     def handle_board_mouse_motion(self):
+        self.p1.hex_hand_hover = None
+        self.p2.hex_hand_hover = None
+
         mouse_x = self.MOUSE_POS[0]
         mouse_y = self.MOUSE_POS[1]
 
@@ -524,15 +567,47 @@ class Game():
 
     def handle_up_mouse_motion(self):
         self.hex_hover = None
+        self.p1.hex_hand_hover = None
+        self.p2.hex_hand_hover = None
         pass
 
     def handle_left_mouse_motion(self):
         self.hex_hover = None
-        pass
+        self.p2.hex_hand_hover = None
+
+        mouse_x = self.MOUSE_POS[0]
+        mouse_y = self.MOUSE_POS[1]
+
+        hex_hover = Hex.pixel_to_pointy_hex(
+            Point(mouse_x, mouse_y), self.hexagon_hand_size)
+
+        for h in self.p1.hexagons_hand:
+            if hex_hover.q == h.hex.q and hex_hover.r == h.hex.r:
+                self.p1.hex_hand_hover = h
+                break
 
     def handle_right_mouse_motion(self):
         self.hex_hover = None
-        pass
+        self.p1.hex_hand_hover = None
+
+        mouse_x = self.MOUSE_POS[0]
+        mouse_y = self.MOUSE_POS[1]
+
+        hex_hover = Hex.pixel_to_pointy_hex(
+            Point(mouse_x, mouse_y), self.hexagon_hand_size)
+
+        for h in self.p2.hexagons_hand:
+            if hex_hover.q == h.hex.q and hex_hover.r == h.hex.r:
+                self.p2.hex_hand_hover = h
+                break
 
     def handle_board_mouse_click(self):
         self.hex_selected = Hex(self.hex_hover.q, self.hex_hover.r)
+    
+    def handle_left_mouse_click(self):
+        if self.p1.hex_hand_hover and self.current_player.id == 'p1':
+            self.p1.hex_hand_selected = self.p1.hex_hand_hover
+
+    def handle_right_mouse_click(self):
+        if self.p2.hex_hand_hover and self.current_player.id == 'p2':
+            self.p2.hex_hand_selected = self.p2.hex_hand_hover
