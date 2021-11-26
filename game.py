@@ -28,6 +28,7 @@ class Game():
         pygame.display.set_caption('Hive')
         self.running, self.playing = True, False
         self.UP_KEY, self.DOWN_KEY, self.LEFT_KEY, self.RIGHT_KEY, self.START_KEY, self.BACK_KEY = False, False, False, False, False, False
+        self.ZOOM_IN_KEY, self.ZOOM_OUT_KEY = False, False
         self.LEFT_CLICK_KEY, self.RIGHT_CLICK_KEY = False, False
         self.MOUSE_POS = None
         self.DISPLAY_W, self.DISPLAY_H = 1300, 690
@@ -64,8 +65,9 @@ class Game():
         self.insect_images = None
 
         # game stats
-        self.hexagon_size = 40
-        self.back_hexagons = []
+        self.info_msg = ''
+        self.hexagon_size = 45
+        self.hexagon_hand_size = 29
         self.current_region = None
         self.hex_selected = None
         self.hex_hover = None
@@ -75,7 +77,6 @@ class Game():
         self.hive = stats[3]
         current_player_id = stats[0]
         self.current_player = self.p1 if current_player_id == 'p1' else self.p2
-        self.hexagon_hand_size = self.hexagon_size - 11
 
         self.possible_placements = None
 
@@ -241,12 +242,16 @@ class Game():
             if self.RIGHT_KEY:
                 self.offset_coordinates('R')
 
+            if self.ZOOM_IN_KEY:
+                self.zoom('+')
+            if self.ZOOM_OUT_KEY:
+                self.zoom('-')
+
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
             self.reset_keys()
         reset_game()
         self.hexagon_size = 40
-        self.back_hexagons = []
         self.current_region = None
         self.hex_selected = None
         self.hex_hover = None
@@ -263,8 +268,6 @@ class Game():
         self.update_stats(self.p1)
         self.update_stats(self.p2)
 
-        self.init_board()
-
     def offset_coordinates(self, dir):
         size = self.hexagon_size
         w = sqrt(3)*size
@@ -272,19 +275,14 @@ class Game():
         dw = w
         dh = 3/4*h
 
-        if dir == 'U':
+        if dir == 'D':
             self.CENTER.translate(self.CENTER.x, self.CENTER.y-dh)
-        elif dir == 'D':
+        elif dir == 'U':
             self.CENTER.translate(self.CENTER.x, self.CENTER.y+dh)
         elif dir == 'L':
             self.CENTER.translate(self.CENTER.x-dw, self.CENTER.y)
         elif dir == 'R':
             self.CENTER.translate(self.CENTER.x+dw, self.CENTER.y)
-
-        # recalculate hexagons coordinates
-        for h in self.back_hexagons:
-            p = Hex.pointy_hex_to_pixel(h.hex, size)
-            h.update(center=Point(self.CENTER.x+p.x, self.CENTER.y+p.y))
 
     def handle_mouse_motion(self):
         region = None
@@ -306,6 +304,8 @@ class Game():
         if self.current_region == 'center':
             self.handle_board_mouse_click()
         if self.current_region == 'up':
+            self.info_msg = ''
+            self.possible_placements = None
             self.hex_selected = None
             self.p1.hex_hand_selected = None
             self.p2.hex_hand_selected = None
@@ -354,6 +354,7 @@ class Game():
     def reset_keys(self):
         self.UP_KEY, self.DOWN_KEY, self.LEFT_KEY, self.RIGHT_KEY, self.START_KEY, self.BACK_KEY = False, False, False, False, False, False
         self.LEFT_CLICK_KEY, self.RIGHT_CLICK_KEY = False, False
+        self.ZOOM_IN_KEY, self.ZOOM_OUT_KEY = False, False
         # self.MOUSE_POS = None
         # self.current_region = None
         self.MOUSE_MOTION = False
@@ -427,13 +428,15 @@ class Game():
 
                 pygame.draw.lines(self.display, h1.color, True, h1.points, 3)
                 pygame.draw.polygon(self.display, h2.color, h2.points)
+                img_size = 110/100*size
                 picture = pygame.transform.scale(
-                    self.insect_images[type], [50, 50])
-                self.display.blit(picture, [h2.center.x-25, h2.center.y-25])
+                    self.insect_images[type], [img_size, img_size])
+                self.display.blit(
+                    picture, [h2.center.x-img_size/2, h2.center.y-img_size/2])
 
         # center
-        pygame.draw.circle(self.display, self.PALETTE[2], center.point, 5, 0)
-        pygame.draw.circle(self.display, self.WHITE, center.point, 5, 1)
+        pygame.draw.circle(self.display, self.BLACK, center.point, 7, 0)
+        pygame.draw.circle(self.display, self.WHITE, center.point, 7, 2)
 
         # hexagon hover
         if self.hex_hover:
@@ -448,16 +451,24 @@ class Game():
             h = Hexagon(Point(center.x + p.x, center.y + p.y),
                         size-3, self.hex_selected, self.PALETTE[3])
             pygame.draw.lines(self.display, h.color, True, h.points, 3)
+            pygame.draw.circle(self.display, self.BLACK, h.center.point, 7, 0)
+            pygame.draw.circle(
+                self.display, self.PALETTE[3], h.center.point, 7, 2)
 
     def draw_menu_up(self):
         rect = self.rect_up_region
         self.draw_text(f"{self.current_player.name}'s turn", 15,
-                       rect.centerx, rect.centery, self.WHITE, self.font_name_default)
+                       rect.centerx, rect.centery-10, self.WHITE, self.font_name_default)
+        self.draw_text(f'{self.info_msg}', 10,
+                       rect.centerx, rect.centery+10, self.RED, self.font_name_default)
 
-        self.draw_menu_arrow()
+        self.draw_menu_btn()
 
     def draw_menu_left(self):
         rect = self.rect_left_region
+
+        size = self.hexagon_hand_size
+        img_size = 120/100*size
 
         self.draw_text(f'{self.p1.name}', 15,
                        rect.centerx, rect.topleft[1]+20, self.WHITE, self.font_name_default)
@@ -473,26 +484,34 @@ class Game():
             # self.draw_text(h.value, 8, h.center.x, h.center.y,
             #                self.WHITE, self.font_name_default)
             picture = pygame.transform.scale(
-                self.insect_images[h.value], [40, 40])
-            self.display.blit(picture, [h.center.x-20, h.center.y-20])
+                self.insect_images[h.value], [img_size, img_size])
+            self.display.blit(
+                picture, [h.center.x-img_size/2, h.center.y-img_size/2])
 
         if self.p1.hex_hand_hover:
             for h in self.p1.hexagons_hand[::-1]:
                 if h.value == self.p1.hex_hand_hover.value:
-                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    _h = Hexagon(h.center, size, h.hex, h.color)
                     pygame.draw.lines(
-                        self.display, self.WHITE, True, _h.points, 4)
+                        self.display, self.PALETTE[3], True, _h.points, 3)
                     break
         if self.p1.hex_hand_selected:
             for h in self.p1.hexagons_hand[::-1]:
                 if h.value == self.p1.hex_hand_selected.value:
-                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    _h = Hexagon(h.center, size, h.hex, h.color)
                     pygame.draw.lines(
-                        self.display, self.PALETTE[3], True, _h.points, 4)
+                        self.display, self.PALETTE[3], True, _h.points, 3)
+                    pygame.draw.circle(
+                        self.display, self.BLACK, h.center.point, 5, 0)
+                    pygame.draw.circle(
+                        self.display, self.PALETTE[3], h.center.point, 5, 1)
                     break
 
     def draw_menu_right(self):
         rect = self.rect_right_region
+
+        size = self.hexagon_hand_size
+        img_size = 120/100*size
 
         self.draw_text(f'{self.p2.name}', 15,
                        rect.centerx, rect.topleft[1]+20, self.WHITE, self.font_name_default)
@@ -508,27 +527,31 @@ class Game():
             # self.draw_text(h.value, 8, h.center.x, h.center.y,
             #                self.WHITE, self.font_name_default)
             picture = pygame.transform.scale(
-                self.insect_images[h.value], [40, 40])
-            self.display.blit(picture, [h.center.x-20, h.center.y-20])
+                self.insect_images[h.value], [img_size, img_size])
+            self.display.blit(
+                picture, [h.center.x-img_size/2, h.center.y-img_size/2])
 
         if self.p2.hex_hand_hover:
             for h in self.p2.hexagons_hand[::-1]:
                 if h.value == self.p2.hex_hand_hover.value:
-                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    _h = Hexagon(h.center, size, h.hex, h.color)
                     pygame.draw.lines(
-                        self.display, self.WHITE, True, _h.points, 4)
+                        self.display, self.PALETTE[3], True, _h.points, 3)
                     break
         if self.p2.hex_hand_selected:
             for h in self.p2.hexagons_hand[::-1]:
                 if h.value == self.p2.hex_hand_selected.value:
-                    _h = Hexagon(h.center, h.size+2, h.hex, h.color)
+                    _h = Hexagon(h.center, size, h.hex, h.color)
                     pygame.draw.lines(
-                        self.display, self.PALETTE[3], True, _h.points, 4)
+                        self.display, self.PALETTE[3], True, _h.points, 2)
+                    pygame.draw.circle(
+                        self.display, self.BLACK, h.center.point, 5, 0)
+                    pygame.draw.circle(
+                        self.display, self.PALETTE[3], h.center.point, 5, 1)
                     break
 
-    def draw_menu_arrow(self):
+    def draw_menu_btn(self):
         r = self.rect_arrow_region
-        # collidepoint = rect.collidepoint(self.MOUSE_POS)
 
         pygame.draw.rect(self.display, self.WHITE,
                          r, 1)
@@ -539,25 +562,41 @@ class Game():
         left_btn = pygame.Rect(0, 0, size, size)
         right_btn = pygame.Rect(0, 0, size, size)
 
+        zoom_in_btn = pygame.Rect(0, 0, size, 10)
+        zoom_out_btn = pygame.Rect(0, 0, size, 10)
+
         top_btn.center = (r.centerx, r.centery-size/2-2)
         bottom_btn.center = (r.centerx, r.centery+size/2+2)
         left_btn.center = (r.centerx-size-2, r.centery)
         right_btn.center = (r.centerx+size+2, r.centery)
 
+        zoom_in_btn.center = (r.centerx+size+2, r.centery+24)
+        zoom_out_btn.center = (r.centerx-size-2, r.centery+24)
+
         if self.LEFT_CLICK_KEY:
             if top_btn.collidepoint(self.MOUSE_POS):
-                self.handle_arrow_btn('U')
-            if bottom_btn.collidepoint(self.MOUSE_POS):
-                self.handle_arrow_btn('D')
-            if left_btn.collidepoint(self.MOUSE_POS):
-                self.handle_arrow_btn('L')
-            if right_btn.collidepoint(self.MOUSE_POS):
-                self.handle_arrow_btn('R')
+                self.handle_btn('U')
+            elif bottom_btn.collidepoint(self.MOUSE_POS):
+                self.handle_btn('D')
+            elif left_btn.collidepoint(self.MOUSE_POS):
+                self.handle_btn('L')
+            elif right_btn.collidepoint(self.MOUSE_POS):
+                self.handle_btn('R')
+
+            elif zoom_in_btn.collidepoint(self.MOUSE_POS):
+                self.handle_btn('+')
+            elif zoom_out_btn.collidepoint(self.MOUSE_POS):
+                self.handle_btn('-')
+                # -------------------------------------------------------------
 
         pygame.draw.rect(self.display, self.PALETTE[2], top_btn, 0)
         pygame.draw.rect(self.display, self.PALETTE[2], bottom_btn, 0)
         pygame.draw.rect(self.display, self.PALETTE[2], left_btn, 0)
         pygame.draw.rect(self.display, self.PALETTE[2], right_btn, 0)
+
+        pygame.draw.rect(self.display, self.WHITE, zoom_in_btn, 0)
+        pygame.draw.rect(self.display, self.WHITE, zoom_out_btn, 0)
+
         self.draw_text('U', 15,  top_btn.centerx, top_btn.centery,
                        self.PALETTE[0], self.font_name_default)
         self.draw_text('D', 15,  bottom_btn.centerx,
@@ -567,7 +606,12 @@ class Game():
         self.draw_text('R', 15,  right_btn.centerx,
                        right_btn.centery, self.PALETTE[0], self.font_name_default)
 
-    def handle_arrow_btn(self, btn):
+        self.draw_text('+', 12,  zoom_in_btn.centerx,
+                       zoom_in_btn.centery, self.BLACK, self.font_name_default)
+        self.draw_text('-', 12,  zoom_out_btn.centerx,
+                       zoom_out_btn.centery, self.BLACK, self.font_name_default)
+
+    def handle_btn(self, btn):
         if btn == 'L':
             self.LEFT_KEY = True
         if btn == 'R':
@@ -576,6 +620,10 @@ class Game():
             self.UP_KEY = True
         if btn == 'D':
             self.DOWN_KEY = True
+        if btn == '+':
+            self.ZOOM_IN_KEY = True
+        if btn == '-':
+            self.ZOOM_OUT_KEY = True
 
     def handle_board_mouse_motion(self):
         self.p1.hex_hand_hover = None
@@ -595,7 +643,6 @@ class Game():
         self.hex_hover = None
         self.p1.hex_hand_hover = None
         self.p2.hex_hand_hover = None
-        pass
 
     def handle_left_mouse_motion(self):
         self.hex_hover = None
@@ -631,6 +678,7 @@ class Game():
         self.hex_selected = Hex(self.hex_hover.q, self.hex_hover.r)
 
         if self.current_player.hex_hand_selected and self.possible_placements:
+            placed = False
             for pp in self.possible_placements:
                 if self.hex_selected.q == pp[0] and self.hex_selected.r == pp[1]:
                     place_insect(
@@ -650,15 +698,27 @@ class Game():
                         self.current_player = self.p2
 
                     self.possible_placements = None
+                    placed = True
+                    self.info_msg = ''
                     break
+            if not placed:
+                self.info_msg = 'Wrong place!!!'
 
     def handle_left_mouse_click(self):
+        if self.current_player.id == 'p2':
+            self.info_msg = "It's not your turn!!!"
+        else:
+            self.info_msg = ''
         self.possible_placements = None
         if self.p1.hex_hand_hover and self.current_player.id == 'p1':
             self.p1.hex_hand_selected = self.p1.hex_hand_hover
             self.possible_placements = get_possible_placements()
 
     def handle_right_mouse_click(self):
+        if self.current_player.id == 'p1':
+            self.info_msg = "It's not your turn!!!"
+        else:
+            self.info_msg = ''
         self.possible_placements = None
         if self.p2.hex_hand_hover and self.current_player.id == 'p2':
             self.p2.hex_hand_selected = self.p2.hex_hand_hover
@@ -675,3 +735,9 @@ class Game():
             'mosquito': pygame.image.load('./img/mosquito.png'),
             'pillbug': pygame.image.load('./img/pillbug.png')
         }
+
+    def zoom(self, dir):
+        if dir == '+' and self.hexagon_size <= 120:
+            self.hexagon_size += 5
+        elif dir == '-' and self.hexagon_size > 30:
+            self.hexagon_size -= 5
