@@ -1,5 +1,5 @@
 import requests
-PORT = 3030
+PORT = 3031
 URL = f'http://localhost:{PORT}/hive_api'
 
 
@@ -39,6 +39,10 @@ def get_possible_placements():
     res = requests.post(f'{URL}/insect/get_possible_placements')
     possible_placements = res.json()['placements']
     return possible_placements
+
+
+def reset_game():
+    requests.post(f'{URL}/game/reset_game')
 
 
 def place_insect(type, hexagon):

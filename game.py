@@ -33,9 +33,6 @@ class Game():
         self.DISPLAY_W, self.DISPLAY_H = 1300, 690
         self.MOUSE_MOTION = False
 
-        self.hexagon_size = 40
-        self.back_hexagons = []
-
         self.CENTER = Point(self.DISPLAY_W/2, self.DISPLAY_H/2)
 
         self.rect_up_region = pygame.Rect(
@@ -64,12 +61,14 @@ class Game():
         self.credits_menu = CreditsMenu(self)
         self.curr_menu = self.main_menu
 
-        self.current_region = None
-
-        self.hex_selected = None
-        self.hex_hover = None
+        self.insect_images = None
 
         # game stats
+        self.hexagon_size = 40
+        self.back_hexagons = []
+        self.current_region = None
+        self.hex_selected = None
+        self.hex_hover = None
         stats = get_game_stats()
         self.p1 = stats[1]
         self.p2 = stats[2]
@@ -83,7 +82,7 @@ class Game():
         self.update_stats(self.p1)
         self.update_stats(self.p2)
 
-        self.init_board()
+        self.loadImgs()
 
     def update_stats(self, player):
         if player.id == 'p1':
@@ -245,6 +244,26 @@ class Game():
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
             self.reset_keys()
+        reset_game()
+        self.hexagon_size = 40
+        self.back_hexagons = []
+        self.current_region = None
+        self.hex_selected = None
+        self.hex_hover = None
+        stats = get_game_stats()
+        self.p1 = stats[1]
+        self.p2 = stats[2]
+        self.hive = stats[3]
+        current_player_id = stats[0]
+        self.current_player = self.p1 if current_player_id == 'p1' else self.p2
+        self.hexagon_hand_size = self.hexagon_size - 11
+
+        self.possible_placements = None
+
+        self.update_stats(self.p1)
+        self.update_stats(self.p2)
+
+        self.init_board()
 
     def offset_coordinates(self, dir):
         size = self.hexagon_size
@@ -376,87 +395,59 @@ class Game():
         text_rect.center = (x, y)
         self.display.blit(text_surface, text_rect)
 
-    def init_board(self):
-        size = self.hexagon_size
-        w = sqrt(3)*size
-        h = 2*size
-        dw = w
-        dh = 3/4*h
-        center = Point(self.CENTER.x, self.CENTER.y)
-        ad = Hex.axial_directions(q1=-20, q2=20, r1=-20, r2=20)
-
-        for d in ad:
-            p = Hex.pointy_hex_to_pixel(d, size)
-            h = Hexagon(Point(center.x + p.x, center.y + p.y),
-                        size, d, self.PALETTE[0])
-            if d.q == 0 and d.r == 0:
-                h.color = self.RED
-                h.value = 0
-
-            self.back_hexagons.append(h)
-
     def draw_board(self):
-        hex_hover = None
-        hex_selected = None
-        hex_center = None
-        for h in self.back_hexagons:
-            x = h.center.x
-            y = h.center.y
+        center = Point(self.CENTER.x, self.CENTER.y)
+        size = self.hexagon_size
 
-            rcr = self.rect_center_region
+        # draw possible placements
+        if self.possible_placements:
+            for pp in self.possible_placements:
+                p = Hex.pointy_hex_to_pixel(Hex(pp[0], pp[1]), size)
+                h = Hexagon(Point(center.x + p.x, center.y + p.y),
+                            size-3, pp, self.PALETTE[4])
+                pygame.draw.lines(self.display, h.color, True, h.points, 4)
 
-            if self.possible_placements:
-                for pp in self.possible_placements:
-                    if h.hex.q == pp[0] and h.hex.r == pp[1]:
-                        _h = Hexagon(h.center, h.size-4, h.hex, h.color)
-                        pygame.draw.lines(
-                            self.display, self.PALETTE[4], True, _h.points, 4)
-
+        # draw hive
+        if self.hive:
             for insect in self.hive:
                 type = insect[0]
                 pid = insect[2]
-                hex = insect[3]
+                hex = Hex(insect[3][0], insect[3][1])
 
-                if h.hex.q == hex[0] and h.hex.r == hex[1]:
-                    pygame.draw.lines(
-                        self.display, self.WHITE, True, h.points, 4)
-                    if pid == 'p1':
-                        pygame.draw.polygon(
-                            self.display, self.PALETTE[0], h.points)
-                        self.draw_text(type, 9, h.center.x, h.center.y,
-                                       self.WHITE, self.font_name_default)
-                    if pid == 'p2':
-                        pygame.draw.polygon(
-                            self.display, self.PALETTE[1], h.points)
-                        self.draw_text(type, 9, h.center.x, h.center.y,
-                                       self.WHITE, self.font_name_default)
+                p = Hex.pointy_hex_to_pixel(hex, size)
+                h1 = Hexagon(Point(center.x + p.x, center.y + p.y),
+                             size-3, hex, self.WHITE)
+                h2 = Hexagon(Point(center.x + p.x, center.y + p.y),
+                             size-5, hex, None)
 
-            if h.hex.point.point == (0, 0):
-                hex_center = h
-            if self.hex_hover and self.hex_hover.point.point == h.hex.point.point:
-                hex_hover = self.hex_hover
-                self.draw_text(str(h.hex), 12, h.center.x,
-                               h.center.y, self.WHITE, self.font_name_default)
-            if self.hex_selected and self.hex_selected.point.point == h.hex.point.point:
-                hex_selected = self.hex_selected
+                if pid == 'p1':
+                    h2.color = self.PALETTE[0]
+                if pid == 'p2':
+                    h2.color = self.PALETTE[1]
 
-        if hex_hover:
-            h = next((
-                h for h in self.back_hexagons if h.hex.point.point == hex_hover.point.point), None)
-            _h = Hexagon(h.center, h.size+1, h.hex, h.color)
-            pygame.draw.lines(
-                self.display, self.WHITE, True, _h.points, 4)
-        if hex_selected:
-            h = next((
-                h for h in self.back_hexagons if h.hex.point.point == hex_selected.point.point), None)
-            _h = Hexagon(h.center, h.size+1, h.hex, h.color)
-            pygame.draw.lines(
-                self.display, self.PALETTE[3], True, _h.points, 4)
-        if hex_center:
-            pygame.draw.circle(
-                self.display, self.PALETTE[2], hex_center.center.point, 5, 0)
-            pygame.draw.circle(
-                self.display, self.WHITE, hex_center.center.point, 5, 1)
+                pygame.draw.lines(self.display, h1.color, True, h1.points, 3)
+                pygame.draw.polygon(self.display, h2.color, h2.points)
+                picture = pygame.transform.scale(
+                    self.insect_images[type], [50, 50])
+                self.display.blit(picture, [h2.center.x-25, h2.center.y-25])
+
+        # center
+        pygame.draw.circle(self.display, self.PALETTE[2], center.point, 5, 0)
+        pygame.draw.circle(self.display, self.WHITE, center.point, 5, 1)
+
+        # hexagon hover
+        if self.hex_hover:
+            p = Hex.pointy_hex_to_pixel(self.hex_hover, size)
+            h = Hexagon(Point(center.x + p.x, center.y + p.y),
+                        size-3, self.hex_hover, self.PALETTE[3])
+            pygame.draw.lines(self.display, h.color, True, h.points, 3)
+
+        # hexagon selected
+        if self.hex_selected:
+            p = Hex.pointy_hex_to_pixel(self.hex_selected, size)
+            h = Hexagon(Point(center.x + p.x, center.y + p.y),
+                        size-3, self.hex_selected, self.PALETTE[3])
+            pygame.draw.lines(self.display, h.color, True, h.points, 3)
 
     def draw_menu_up(self):
         rect = self.rect_up_region
@@ -479,8 +470,11 @@ class Game():
         for h in self.p1.hexagons_hand:
             pygame.draw.lines(self.display, self.WHITE, True, h.points, 4)
             pygame.draw.polygon(self.display, h.color, h.points)
-            self.draw_text(h.value, 8, h.center.x, h.center.y,
-                           self.WHITE, self.font_name_default)
+            # self.draw_text(h.value, 8, h.center.x, h.center.y,
+            #                self.WHITE, self.font_name_default)
+            picture = pygame.transform.scale(
+                self.insect_images[h.value], [40, 40])
+            self.display.blit(picture, [h.center.x-20, h.center.y-20])
 
         if self.p1.hex_hand_hover:
             for h in self.p1.hexagons_hand[::-1]:
@@ -511,8 +505,11 @@ class Game():
         for h in self.p2.hexagons_hand:
             pygame.draw.lines(self.display, self.WHITE, True, h.points, 4)
             pygame.draw.polygon(self.display, h.color, h.points)
-            self.draw_text(h.value, 8, h.center.x, h.center.y,
-                           self.WHITE, self.font_name_default)
+            # self.draw_text(h.value, 8, h.center.x, h.center.y,
+            #                self.WHITE, self.font_name_default)
+            picture = pygame.transform.scale(
+                self.insect_images[h.value], [40, 40])
+            self.display.blit(picture, [h.center.x-20, h.center.y-20])
 
         if self.p2.hex_hand_hover:
             for h in self.p2.hexagons_hand[::-1]:
@@ -633,7 +630,7 @@ class Game():
     def handle_board_mouse_click(self):
         self.hex_selected = Hex(self.hex_hover.q, self.hex_hover.r)
 
-        if self.possible_placements:
+        if self.current_player.hex_hand_selected and self.possible_placements:
             for pp in self.possible_placements:
                 if self.hex_selected.q == pp[0] and self.hex_selected.r == pp[1]:
                     place_insect(
@@ -666,3 +663,15 @@ class Game():
         if self.p2.hex_hand_hover and self.current_player.id == 'p2':
             self.p2.hex_hand_selected = self.p2.hex_hand_hover
             self.possible_placements = get_possible_placements()
+
+    def loadImgs(self):
+        self.insect_images = {
+            'queen_bee': pygame.image.load('./img/queen_bee.png'),
+            'beetle': pygame.image.load('./img/beetle.png'),
+            'grasshopper': pygame.image.load('./img/grasshopper.png'),
+            'spider': pygame.image.load('./img/spider.png'),
+            'soldier_ant': pygame.image.load('./img/soldier_ant.png'),
+            'ladybug': pygame.image.load('./img/ladybug.png'),
+            'mosquito': pygame.image.load('./img/mosquito.png'),
+            'pillbug': pygame.image.load('./img/pillbug.png')
+        }
