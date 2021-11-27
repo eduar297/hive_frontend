@@ -23,6 +23,8 @@ def get_game_stats():
     hive = stats['hive']
     players_info = stats['players_info']
 
+    status_code = stats['status_code']
+
     p1_stats = players_info['p1']
     p2_stats = players_info['p2']
 
@@ -35,10 +37,15 @@ def get_game_stats():
     return [current_player_id, p1, p2, hive]
 
 
-def get_possible_placements():
-    res = requests.post(f'{URL}/insect/get_possible_placements')
-    possible_placements = res.json()['placements']
-    return possible_placements
+def get_possible_placements(type):
+    res = requests.post(
+        # f'{URL}/insect/get_possible_placements', json={'type': type}).json()
+        f'{URL}/insect/get_possible_placements', json={'type': type}).json()
+    status_code = res['status_code']
+    if status_code == 400:
+        return {'success': False, 'msg': res['msg']}
+    elif status_code == 200:
+        return {'success': True, 'placements': res['placements']}
 
 
 def reset_game():
@@ -47,13 +54,9 @@ def reset_game():
 
 def place_insect(type, hexagon):
     res = requests.post(f'{URL}/insect/place_insect',
-                        json={'type': type, 'hexagon': hexagon})
-
-    data = res.json()
-
-    try:
-        msg = data['msg']
-        return msg
-    except:
-        insect = data['insect']
-        return insect
+                        json={'type': type, 'hexagon': hexagon}).json()
+    status_code = res['status_code']
+    if status_code == 400:
+        return {'success': False, 'msg': res['msg']}
+    elif status_code == 200:
+        return {'success': True, 'placements': res['insect']}

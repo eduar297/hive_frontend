@@ -459,7 +459,7 @@ class Game():
         rect = self.rect_up_region
         self.draw_text(f"{self.current_player.name}'s turn", 15,
                        rect.centerx, rect.centery-10, self.WHITE, self.font_name_default)
-        self.draw_text(f'{self.info_msg}', 10,
+        self.draw_text(f'{self.info_msg}', 12,
                        rect.centerx, rect.centery+10, self.RED, self.font_name_default)
 
         self.draw_menu_btn()
@@ -712,7 +712,11 @@ class Game():
         self.possible_placements = None
         if self.p1.hex_hand_hover and self.current_player.id == 'p1':
             self.p1.hex_hand_selected = self.p1.hex_hand_hover
-            self.possible_placements = get_possible_placements()
+            pp = get_possible_placements(self.p1.hex_hand_selected.value)
+            if pp['success']:
+                self.possible_placements = pp['placements']
+            else:
+                self.info_msg = pp['msg']
 
     def handle_right_mouse_click(self):
         if self.current_player.id == 'p1':
@@ -722,7 +726,11 @@ class Game():
         self.possible_placements = None
         if self.p2.hex_hand_hover and self.current_player.id == 'p2':
             self.p2.hex_hand_selected = self.p2.hex_hand_hover
-            self.possible_placements = get_possible_placements()
+            pp = get_possible_placements(self.p2.hex_hand_selected.value)
+            if pp['success']:
+                self.possible_placements = pp['placements']
+            else:
+                self.info_msg = pp['msg']
 
     def loadImgs(self):
         self.insect_images = {
