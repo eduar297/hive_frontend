@@ -444,6 +444,8 @@ class Game():
             h = Hexagon(Point(center.x + p.x, center.y + p.y),
                         size-3, self.hex_hover, self.PALETTE[3])
             pygame.draw.lines(self.display, h.color, True, h.points, 3)
+            self.draw_text(str(h.hex), 12, h.center.x, h.center.y,
+                           self.WHITE, self.font_name_default)
 
         # hexagon selected
         if self.hex_selected:
