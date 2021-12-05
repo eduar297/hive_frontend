@@ -70,6 +70,7 @@ class Game():
         self.hexagon_hand_size = 29
         self.current_region = None
         self.hex_selected = None
+        self.hexagon_ori = None
         self.hex_hover = None
         stats = get_game_stats()
         self.p1 = stats[1]
@@ -79,6 +80,7 @@ class Game():
         self.current_player = self.p1 if current_player_id == 'p1' else self.p2
 
         self.possible_placements = None
+        self.possible_moves = None
 
         self.update_stats(self.p1)
         self.update_stats(self.p2)
@@ -227,6 +229,16 @@ class Game():
             if self.LEFT_CLICK_KEY:
                 self.handle_mouse_click()
 
+            if self.RIGHT_CLICK_KEY:
+                self.possible_placements = None
+                self.possible_moves = None
+                self.hex_selected = None
+                self.hexagon_ori = None
+                self.p1.hex_hand_hover = None
+                self.p1.hex_hand_selected = None
+                self.p2.hex_hand_hover = None
+                self.p2.hex_hand_selected = None
+
             if self.MOUSE_MOTION:
                 self.handle_mouse_motion()
 
@@ -250,7 +262,7 @@ class Game():
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
             self.reset_keys()
-        reset_game()
+        # reset_game()
         self.hexagon_size = 40
         self.current_region = None
         self.hex_selected = None
@@ -264,6 +276,7 @@ class Game():
         self.hexagon_hand_size = self.hexagon_size - 11
 
         self.possible_placements = None
+        self.possible_moves = None
 
         self.update_stats(self.p1)
         self.update_stats(self.p2)
@@ -306,6 +319,7 @@ class Game():
         if self.current_region == 'up':
             self.info_msg = ''
             self.possible_placements = None
+            self.possible_moves = None
             self.hex_selected = None
             self.p1.hex_hand_selected = None
             self.p2.hex_hand_selected = None
@@ -347,6 +361,8 @@ class Game():
                 if event.button == LEFT:
                     self.LEFT_CLICK_KEY = True
                     self.MOUSE_POS = pygame.mouse.get_pos()
+                if event.button == RIGHT:
+                    self.RIGHT_CLICK_KEY = True
             elif event.type == pygame.MOUSEMOTION:
                 self.MOUSE_POS = pygame.mouse.get_pos()
                 self.MOUSE_MOTION = True
@@ -399,14 +415,9 @@ class Game():
     def draw_board(self):
         center = Point(self.CENTER.x, self.CENTER.y)
         size = self.hexagon_size
-
-        # draw possible placements
-        if self.possible_placements:
-            for pp in self.possible_placements:
-                p = Hex.pointy_hex_to_pixel(Hex(pp[0], pp[1]), size)
-                h = Hexagon(Point(center.x + p.x, center.y + p.y),
-                            size-3, pp, self.PALETTE[4])
-                pygame.draw.lines(self.display, h.color, True, h.points, 4)
+        Q = []
+        D = {}
+        hive = []
 
         # draw hive
         if self.hive:
@@ -416,23 +427,59 @@ class Game():
                 hex = Hex(insect[3][0], insect[3][1])
 
                 p = Hex.pointy_hex_to_pixel(hex, size)
-                h1 = Hexagon(Point(center.x + p.x, center.y + p.y),
-                             size-3, hex, self.WHITE)
-                h2 = Hexagon(Point(center.x + p.x, center.y + p.y),
-                             size-5, hex, None)
+
+                if hex.point.point in Q:
+                    D[hex.point.point] += 1
+                    h1 = Hexagon(Point(
+                        center.x + p.x + D[hex.point.point]*5, center.y + p.y + D[hex.point.point]*5), size-3, hex, self.WHITE)
+                    h2 = Hexagon(Point(
+                        center.x + p.x + D[hex.point.point]*5, center.y + p.y + D[hex.point.point]*5), size-5, hex, None)
+                else:
+                    Q.append(hex.point.point)
+                    D[hex.point.point] = 0
+
+                    h1 = Hexagon(Point(center.x + p.x, center.y +
+                                 p.y), size-3, hex, self.WHITE)
+                    h2 = Hexagon(
+                        Point(center.x + p.x, center.y + p.y), size-5, hex, None)
 
                 if pid == 'p1':
                     h2.color = self.PALETTE[0]
                 if pid == 'p2':
                     h2.color = self.PALETTE[1]
 
-                pygame.draw.lines(self.display, h1.color, True, h1.points, 3)
-                pygame.draw.polygon(self.display, h2.color, h2.points)
                 img_size = 110/100*size
                 picture = pygame.transform.scale(
                     self.insect_images[type], [img_size, img_size])
-                self.display.blit(
-                    picture, [h2.center.x-img_size/2, h2.center.y-img_size/2])
+                hive.append([h1, h2, img_size, picture, D[hex.point.point]])
+
+        # draw possible moves
+        if self.possible_moves:
+            for pm in self.possible_moves:
+                p = Hex.pointy_hex_to_pixel(Hex(pm[0], pm[1]), size)
+                h = Hexagon(Point(center.x + p.x, center.y + p.y),
+                            size-3, pm, self.PALETTE[4])
+                pygame.draw.lines(self.display, h.color, True, h.points, 4)
+
+        # draw possible placements
+        if self.possible_placements:
+            for pp in self.possible_placements:
+                p = Hex.pointy_hex_to_pixel(Hex(pp[0], pp[1]), size)
+                h = Hexagon(Point(center.x + p.x, center.y + p.y),
+                            size-3, pp, self.PALETTE[4])
+                pygame.draw.lines(self.display, h.color, True, h.points, 4)
+
+        for h in hive:
+            h1 = h[0]
+            h2 = h[1]
+            img_size = h[2]
+            picture = h[3]
+            count = h[4]
+
+            pygame.draw.lines(self.display, h1.color, True, h1.points, 3)
+            pygame.draw.polygon(self.display, h2.color, h2.points)
+            self.display.blit(
+                picture, [h2.center.x-img_size/2, h2.center.y-img_size/2])
 
         # center
         pygame.draw.circle(self.display, self.BLACK, center.point, 7, 0)
@@ -440,8 +487,13 @@ class Game():
 
         # hexagon hover
         if self.hex_hover:
+            if self.hex_hover.point.point in Q:
+                _x, _y = D[self.hex_hover.point.point] * \
+                    5, D[self.hex_hover.point.point]*5
+            else:
+                _x, _y = 0, 0
             p = Hex.pointy_hex_to_pixel(self.hex_hover, size)
-            h = Hexagon(Point(center.x + p.x, center.y + p.y),
+            h = Hexagon(Point(center.x + p.x + _x, center.y + p.y+_y),
                         size-3, self.hex_hover, self.PALETTE[3])
             pygame.draw.lines(self.display, h.color, True, h.points, 3)
             self.draw_text(str(h.hex), 12, h.center.x, h.center.y,
@@ -449,8 +501,13 @@ class Game():
 
         # hexagon selected
         if self.hex_selected:
+            if self.hex_selected.point.point in Q:
+                _x, _y = D[self.hex_selected.point.point] * \
+                    5, D[self.hex_selected.point.point]*5
+            else:
+                _x, _y = 0, 0
             p = Hex.pointy_hex_to_pixel(self.hex_selected, size)
-            h = Hexagon(Point(center.x + p.x, center.y + p.y),
+            h = Hexagon(Point(center.x + p.x + _x, center.y + _y + p.y),
                         size-3, self.hex_selected, self.PALETTE[3])
             pygame.draw.lines(self.display, h.color, True, h.points, 3)
             pygame.draw.circle(self.display, self.BLACK, h.center.point, 7, 0)
@@ -679,39 +736,120 @@ class Game():
     def handle_board_mouse_click(self):
         self.hex_selected = Hex(self.hex_hover.q, self.hex_hover.r)
 
-        if self.current_player.hex_hand_selected and self.possible_placements:
-            placed = False
-            for pp in self.possible_placements:
-                if self.hex_selected.q == pp[0] and self.hex_selected.r == pp[1]:
-                    place_insect(
-                        self.current_player.hex_hand_selected.value, pp)
-                    # game stats
-                    stats = get_game_stats()
-                    current_player_id = stats[0]
-                    self.hive = stats[3]
+        if self.current_player.hex_hand_selected and self.hex_selected:
+            insect = self.get_insects_in_hex(self.hex_selected)
+            if insect and insect[2] == self.current_player.id:
+                self.possible_placements = None
+                self.current_player.hex_hand_selected = None
+                self.hexagon_ori = None
+                self.analize_possible_moves()
 
-                    if current_player_id == 'p1':
-                        self.p2 = stats[2]
-                        self.update_stats(self.p2)
-                        self.current_player = self.p1
-                    elif current_player_id == 'p2':
-                        self.p1 = stats[1]
-                        self.update_stats(self.p1)
-                        self.current_player = self.p2
+            elif self.possible_placements:
+                self._place_insect()
+                self.hexagon_ori = None
 
-                    self.possible_placements = None
-                    placed = True
-                    self.info_msg = ''
-                    break
-            if not placed:
-                self.info_msg = 'Wrong place!!!'
+        elif self.hex_selected:
+            if self.possible_moves:
+                self._move_insect()
+            else:
+                self.analize_possible_moves()
+
+    # If there is an insect in hex, it returns its properties.
+    # (In case of having several, it returns a list with all, or empty in another case)
+    def get_insects_in_hex(self, hex):
+        last = get_last_insect([hex.q, hex.r])
+        if last['success']:
+            self.info_msg = ""
+            return last['insect']
+        else:
+            self.info_msg = last['msg']
+
+    # analize possible moves
+    def analize_possible_moves(self):
+        self.hexagon_ori = self.hex_selected
+        self.current_player.hex_hand_selected = None
+        insect = self.get_insects_in_hex(self.hex_selected)
+        if insect:
+            type = insect[0]
+            id = insect[1]
+            pid = insect[2]
+            hex = insect[3]
+            placed = insect[4]
+            if not self.current_player.id == pid:
+                self.info_msg = "Wait for your turn!"
+                self.hex_selected = None
+            else:
+                pm = get_possible_moves(type, id, hex)
+                if pm['success']:
+                    self.info_msg = ""
+                    self.possible_moves = pm['moves']
+                else:
+                    self.info_msg = pm['msg']
+
+    # move an insect if you cant
+    def _move_insect(self):
+        self.possible_placements = None
+        moved = False
+        for pm in self.possible_moves:
+            if self.hex_selected.q == pm[0] and self.hex_selected.r == pm[1]:
+                insect = self.get_insects_in_hex(self.hexagon_ori)
+                move_insect(
+                    insect, insect[3], pm)
+                # game stats
+                stats = get_game_stats()
+                current_player_id = stats[0]
+                self.hive = stats[3]
+                if current_player_id == 'p1':
+                    self.p2 = stats[2]
+                    self.update_stats(self.p2)
+                    self.current_player = self.p1
+                elif current_player_id == 'p2':
+                    self.p1 = stats[1]
+                    self.update_stats(self.p1)
+                    self.current_player = self.p2
+                self.possible_placements = None
+                self.possible_moves = None
+                self.hexagon_ori = None
+                moved = True
+                self.info_msg = ''
+                break
+        if not moved:
+            self.info_msg = 'Wrong place!!!'
+
+    # place an insect if it is a valid position
+    def _place_insect(self):
+        self.possible_moves = None
+        placed = False
+        for pp in self.possible_placements:
+            if self.hex_selected.q == pp[0] and self.hex_selected.r == pp[1]:
+                place_insect(
+                    self.current_player.hex_hand_selected.value, pp)
+                # game stats
+                stats = get_game_stats()
+                current_player_id = stats[0]
+                self.hive = stats[3]
+                if current_player_id == 'p1':
+                    self.p2 = stats[2]
+                    self.update_stats(self.p2)
+                    self.current_player = self.p1
+                elif current_player_id == 'p2':
+                    self.p1 = stats[1]
+                    self.update_stats(self.p1)
+                    self.current_player = self.p2
+                self.possible_placements = None
+                placed = True
+                self.info_msg = ''
+                break
+        if not placed:
+            self.info_msg = 'Wrong place!!!'
 
     def handle_left_mouse_click(self):
+        self.possible_moves = None
+        self.possible_placements = None
         if self.current_player.id == 'p2':
-            self.info_msg = "It's not your turn!!!"
+            self.info_msg = "Wait for your turn!"
         else:
             self.info_msg = ''
-        self.possible_placements = None
         if self.p1.hex_hand_hover and self.current_player.id == 'p1':
             self.p1.hex_hand_selected = self.p1.hex_hand_hover
             pp = get_possible_placements(self.p1.hex_hand_selected.value)
@@ -721,11 +859,12 @@ class Game():
                 self.info_msg = pp['msg']
 
     def handle_right_mouse_click(self):
+        self.possible_moves = None
+        self.possible_placements = None
         if self.current_player.id == 'p1':
             self.info_msg = "It's not your turn!!!"
         else:
             self.info_msg = ''
-        self.possible_placements = None
         if self.p2.hex_hand_hover and self.current_player.id == 'p2':
             self.p2.hex_hand_selected = self.p2.hex_hand_hover
             pp = get_possible_placements(self.p2.hex_hand_selected.value)

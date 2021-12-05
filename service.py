@@ -1,5 +1,5 @@
 import requests
-PORT = 3031
+PORT = 3030
 URL = f'http://localhost:{PORT}/hive_api'
 
 
@@ -39,13 +39,22 @@ def get_game_stats():
 
 def get_possible_placements(type):
     res = requests.post(
-        # f'{URL}/insect/get_possible_placements', json={'type': type}).json()
         f'{URL}/insect/get_possible_placements', json={'type': type}).json()
     status_code = res['status_code']
     if status_code == 400:
         return {'success': False, 'msg': res['msg']}
     elif status_code == 200:
         return {'success': True, 'placements': res['placements']}
+
+
+def get_possible_moves(type, id, hex):
+    res = requests.post(
+        f'{URL}/insect/get_possible_moves', json={'type': type, 'id':id, 'hexagon': hex}).json()
+    status_code = res['status_code']
+    if status_code == 400:
+        return {'success': False, 'msg': res['msg']}
+    elif status_code == 200:
+        return {'success': True, 'moves': res['moves']}
 
 
 def reset_game():
@@ -59,4 +68,24 @@ def place_insect(type, hexagon):
     if status_code == 400:
         return {'success': False, 'msg': res['msg']}
     elif status_code == 200:
-        return {'success': True, 'placements': res['insect']}
+        return {'success': True, 'insect': res['insect']}
+
+def move_insect(insect, hexagon_ori, hexagon_end):
+    type=insect[0]
+    id=insect[1]
+    lvl=insect[5]
+    res = requests.post(f'{URL}/insect/move_insect',
+                        json={'type':type,'id':id, 'lvl':lvl, 'hexagon_ori': hexagon_ori, 'hexagon_end':hexagon_end}).json()
+    status_code = res['status_code']
+    if status_code == 400:
+        return {'success': False, 'msg': res['msg']}
+    elif status_code == 200:
+        return {'success': True, 'insect': res['insectRes']}
+
+def get_last_insect(hexagon):
+    res = requests.post(f'{URL}/insect/get_last',json={'hexagon': hexagon}).json()
+    status_code = res['status_code']
+    if status_code == 400:
+        return {'success': False, 'msg': res['msg']}
+    elif status_code == 200:
+        return {'success': True, 'insect': res['insect']}
