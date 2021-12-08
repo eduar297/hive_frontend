@@ -1,5 +1,6 @@
 import pygame
 from tool import Hexagon, Point
+import json
 
 
 class Menu():
@@ -74,7 +75,7 @@ class MainMenu(Menu):
             self.game.draw_text('Main Menu', 35, self.mid_w, self.mid_h-20)
             self.game.draw_text('Player vs Player', 25, self.pvpx, self.pvpy)
             self.game.draw_text('Player vs AI', 25, self.pvaix, self.pvaiy)
-            self.game.draw_text('Options', 25, self.optionsx, self.optionsy)
+            self.game.draw_text('Difficulty', 25, self.optionsx, self.optionsy)
             self.game.draw_text('Credits', 25, self.creditsx, self.creditsy)
             self.game.draw_text('Quit', 25, self.quitx, self.quity)
             self.draw_cursor()
@@ -133,9 +134,10 @@ class MainMenu(Menu):
         if self.game.START_KEY:
             if self.state == 'PVP':
                 self.game.playing = True
+                self.game.mode = 'pvp'
             elif self.state == 'PVAI':
-                # self.game.playing = True
-                pass
+                self.game.playing = True
+                self.game.mode = 'pvai'
             elif self.state == 'Options':
                 self.game.curr_menu = self.game.options_menu
             elif self.state == 'Credits':
@@ -149,11 +151,21 @@ class MainMenu(Menu):
 class OptionsMenu(Menu):
     def __init__(self, game):
         Menu.__init__(self, game, -130)
-        self.state = "Volume"
-        self.volx, self.voly = self.mid_w, self.mid_h+50
-        self.controlsx, self.controlsy = self.mid_w, self.mid_h+90
-        self.infox, self.infoy = self.mid_w, self.mid_h+160
-        self.cursor_rect.midtop = (self.volx+self.offset, self.voly)
+        self.lvl0x, self.lvl0y = self.mid_w, self.mid_h+50
+        self.lvl1x, self.lvl1y = self.mid_w, self.mid_h+90
+        self.lvl2x, self.lvl2y = self.mid_w, self.mid_h+130
+        self.lvl3x, self.lvl3y = self.mid_w, self.mid_h+170
+        self.infox, self.infoy = self.mid_w, self.mid_h+240
+        try:
+            open('config.json')
+            with open('config.json') as file:
+                config = json.load(file)
+                self.state = config['level_state']
+                self.cursor_rect.midtop = (
+                    config['level_coordenates']['x'], config['level_coordenates']['y'])
+        except:
+            self.state = 'lvl0'
+            self.cursor_rect.midtop = (self.lvl0x + self.offset, self.lvl0y)
 
     def display_menu(self):
         self.run_display = True
@@ -166,9 +178,13 @@ class OptionsMenu(Menu):
             self.decorate_screen(self.mid_w+400, self.mid_h+150)
 
             self.game.draw_text('Hive', 80, self.mid_w, 120, self.game.YELLOW)
-            self.game.draw_text('Options', 35, self.mid_w, self.mid_h-20)
-            self.game.draw_text('Volume', 25, self.volx, self.voly)
-            self.game.draw_text('Controls', 25, self.controlsx, self.controlsy)
+            self.game.draw_text('Difficulty level', 35,
+                                self.mid_w, self.mid_h-20)
+            self.game.draw_text('Easy', 25, self.lvl0x, self.lvl0y)
+            self.game.draw_text('Medium', 25, self.lvl1x, self.lvl1y)
+            self.game.draw_text('Hard', 25, self.lvl2x, self.lvl2y)
+            self.game.draw_text('Expert', 25, self.lvl3x,
+                                self.lvl3y, self.game.PALETTE[0])
             self.game.draw_text('Press enter key to save or backspace to return',
                                 15, self.infox, self.infoy, color=self.game.RED)
             self.draw_cursor()
@@ -176,23 +192,39 @@ class OptionsMenu(Menu):
 
     def move_cursor(self):
         if self.game.DOWN_KEY:
-            if self.state == 'Volume':
+            if self.state == 'lvl0':
                 self.cursor_rect.midtop = (
-                    self.controlsx+self.offset, self.controlsy)
-                self.state = 'Controls'
-            elif self.state == 'Controls':
+                    self.lvl1x+self.offset, self.lvl1y)
+                self.state = 'lvl1'
+            elif self.state == 'lvl1':
                 self.cursor_rect.midtop = (
-                    self.volx+self.offset, self.voly)
-                self.state = 'Volume'
+                    self.lvl2x+self.offset, self.lvl2y)
+                self.state = 'lvl2'
+            elif self.state == 'lvl2':
+                self.cursor_rect.midtop = (
+                    self.lvl3x+self.offset, self.lvl3y)
+                self.state = 'lvl3'
+            elif self.state == 'lvl3':
+                self.cursor_rect.midtop = (
+                    self.lvl0x+self.offset, self.lvl0y)
+                self.state = 'lvl0'
         elif self.game.UP_KEY:
-            if self.state == 'Volume':
+            if self.state == 'lvl3':
                 self.cursor_rect.midtop = (
-                    self.controlsx+self.offset, self.controlsy)
-                self.state = 'Controls'
-            elif self.state == 'Controls':
+                    self.lvl2x+self.offset, self.lvl2y)
+                self.state = 'lvl2'
+            elif self.state == 'lvl2':
                 self.cursor_rect.midtop = (
-                    self.volx+self.offset, self.voly)
-                self.state = 'Volume'
+                    self.lvl1x+self.offset, self.lvl1y)
+                self.state = 'lvl1'
+            elif self.state == 'lvl1':
+                self.cursor_rect.midtop = (
+                    self.lvl0x+self.offset, self.lvl0y)
+                self.state = 'lvl0'
+            elif self.state == 'lvl0':
+                self.cursor_rect.midtop = (
+                    self.lvl3x+self.offset, self.lvl3y)
+                self.state = 'lvl3'
 
     def check_input(self):
         self.move_cursor()
@@ -200,8 +232,10 @@ class OptionsMenu(Menu):
             self.game.curr_menu = self.game.main_menu
             self.run_display = False
         elif self.game.START_KEY:
-            # TO-DO: Create a volume menu and a controls menu
-            pass
+            self.game.level = self.game.LEVELS[self.state]
+            self.game.curr_menu = self.game.main_menu
+            self.game.save_config(self.game.level, {'x': self.cursor_rect.midtop[0], 'y': self.cursor_rect.midtop[1]}, self.state)
+            self.run_display = False
 
 
 class CreditsMenu(Menu):

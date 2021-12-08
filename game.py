@@ -3,6 +3,7 @@ from menu import *
 from math import *
 from tool import *
 from service import *
+import json
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -17,6 +18,9 @@ COLOR2 = (29, 120, 116)
 COLOR3 = (103, 146, 137)
 COLOR4 = (197, 224, 99)
 COLOR5 = (152, 206, 0)
+
+LEVELS = {'lvl0': 0, 'lvl1': 1, 'lvl2': 2,
+          'lvl3': 3}
 
 
 LEFT, RIGHT = 1, 3
@@ -33,6 +37,8 @@ class Game():
         self.MOUSE_POS = None
         self.DISPLAY_W, self.DISPLAY_H = 1300, 690
         self.MOUSE_MOTION = False
+
+        self.LEVELS = LEVELS
 
         self.CENTER = Point(self.DISPLAY_W/2, self.DISPLAY_H/2)
 
@@ -63,6 +69,10 @@ class Game():
         self.curr_menu = self.main_menu
 
         self.insect_images = None
+
+        # load default config
+        self.load_config()
+        self.mode = 'pvp'
 
         # game stats
         self.info_msg = ''
@@ -221,7 +231,50 @@ class Game():
         elif player.id == 'p2':
             self.p2.hexagons_hand = hexagons
 
+    def load_config(self):
+        try:
+            file = open('config.json')
+            with open('config.json') as file:
+                config = json.load(file)
+                self.level = config['level']
+        except FileNotFoundError:
+            config = {}
+            config['level'] = 0
+            config['level_coordenates'] = {
+                "x": 520.0, "y": 395.0}
+            config['level_state'] = 'lvl0'
+            self.level = config['level']
+            with open('config.json', 'w') as file:
+                json.dump(config, file, indent=4)
+
+    def save_config(self, level, level_coordenates, level_state):
+        config = {}
+        config['level'] = level
+        config['level_coordenates'] = level_coordenates
+        config['level_state'] = level_state
+        with open('config.json', 'w') as file:
+                json.dump(config, file, indent=4)
+
     def game_loop(self):
+        new_game(self.mode, self.level)
+        self.info_msg = ""
+        self.hexagon_size = 40
+        self.current_region = None
+        self.hex_selected = None
+        self.hex_hover = None
+        stats = get_game_stats()
+        self.p1 = stats[1]
+        self.p2 = stats[2]
+        self.hive = stats[3]
+        current_player_id = stats[0]
+        self.current_player = self.p1 if current_player_id == 'p1' else self.p2
+        self.hexagon_hand_size = self.hexagon_size - 11
+
+        self.possible_placements = None
+        self.possible_moves = None
+
+        self.update_stats(self.p1)
+        self.update_stats(self.p2)
         while self.playing:
             self.check_events()
             if self.BACK_KEY:
@@ -262,7 +315,8 @@ class Game():
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
             self.reset_keys()
-        # reset_game()
+
+        self.info_msg = ""
         self.hexagon_size = 40
         self.current_region = None
         self.hex_selected = None
@@ -453,6 +507,18 @@ class Game():
                     self.insect_images[type], [img_size, img_size])
                 hive.append([h1, h2, img_size, picture, D[hex.point.point]])
 
+        for h in hive:
+            h1 = h[0]
+            h2 = h[1]
+            img_size = h[2]
+            picture = h[3]
+            count = h[4]
+
+            pygame.draw.lines(self.display, h1.color, True, h1.points, 3)
+            pygame.draw.polygon(self.display, h2.color, h2.points)
+            self.display.blit(
+                picture, [h2.center.x-img_size/2, h2.center.y-img_size/2])
+
         # draw possible moves
         if self.possible_moves:
             for pm in self.possible_moves:
@@ -469,21 +535,9 @@ class Game():
                             size-3, pp, self.PALETTE[4])
                 pygame.draw.lines(self.display, h.color, True, h.points, 4)
 
-        for h in hive:
-            h1 = h[0]
-            h2 = h[1]
-            img_size = h[2]
-            picture = h[3]
-            count = h[4]
-
-            pygame.draw.lines(self.display, h1.color, True, h1.points, 3)
-            pygame.draw.polygon(self.display, h2.color, h2.points)
-            self.display.blit(
-                picture, [h2.center.x-img_size/2, h2.center.y-img_size/2])
-
         # center
-        pygame.draw.circle(self.display, self.BLACK, center.point, 7, 0)
-        pygame.draw.circle(self.display, self.WHITE, center.point, 7, 2)
+        # pygame.draw.circle(self.display, self.BLACK, center.point, 7, 0)
+        # pygame.draw.circle(self.display, self.WHITE, center.point, 7, 2)
 
         # hexagon hover
         if self.hex_hover:
@@ -768,6 +822,8 @@ class Game():
     def analize_possible_moves(self):
         self.hexagon_ori = self.hex_selected
         self.current_player.hex_hand_selected = None
+        if self.mode == 'pvai':
+            self.info_msg = 'AI is thinking... ... ...'
         insect = self.get_insects_in_hex(self.hex_selected)
         if insect:
             type = insect[0]
@@ -786,7 +842,7 @@ class Game():
                 else:
                     self.info_msg = pm['msg']
 
-    # move an insect if you cant
+    # move an insect if you can
     def _move_insect(self):
         self.possible_placements = None
         moved = False
@@ -799,6 +855,7 @@ class Game():
                 stats = get_game_stats()
                 current_player_id = stats[0]
                 self.hive = stats[3]
+
                 if current_player_id == 'p1':
                     self.p2 = stats[2]
                     self.update_stats(self.p2)
@@ -812,6 +869,10 @@ class Game():
                 self.hexagon_ori = None
                 moved = True
                 self.info_msg = ''
+
+                if self.mode == 'pvai':
+                    canPlay =  play_ai()
+
                 break
         if not moved:
             self.info_msg = 'Wrong place!!!'
@@ -828,6 +889,7 @@ class Game():
                 stats = get_game_stats()
                 current_player_id = stats[0]
                 self.hive = stats[3]
+
                 if current_player_id == 'p1':
                     self.p2 = stats[2]
                     self.update_stats(self.p2)
@@ -839,6 +901,12 @@ class Game():
                 self.possible_placements = None
                 placed = True
                 self.info_msg = ''
+
+                if self.mode == 'pvai':
+                    self.info_msg = 'AI is thinking... ... ...'
+                    canPlay =  play_ai()
+
+
                 break
         if not placed:
             self.info_msg = 'Wrong place!!!'
@@ -856,22 +924,46 @@ class Game():
             if pp['success']:
                 self.possible_placements = pp['placements']
             else:
-                self.info_msg = pp['msg']
+                if pp['status_code'] == 400:
+                    self.info_msg = pp['msg']
+                if pp['status_code'] == 401:
+                    self.info_msg = pp['msg']
+                    stats = get_game_stats()
+                    current_player_id = stats[0]
+                    if current_player_id == 'p1':
+                        self.current_player = self.p1
+                    elif current_player_id == 'p2':
+                        self.current_player = self.p2
 
     def handle_right_mouse_click(self):
         self.possible_moves = None
         self.possible_placements = None
-        if self.current_player.id == 'p1':
-            self.info_msg = "It's not your turn!!!"
-        else:
-            self.info_msg = ''
-        if self.p2.hex_hand_hover and self.current_player.id == 'p2':
-            self.p2.hex_hand_selected = self.p2.hex_hand_hover
-            pp = get_possible_placements(self.p2.hex_hand_selected.value)
-            if pp['success']:
-                self.possible_placements = pp['placements']
+        if self.mode == 'pvai':
+            if self.current_player.id == 'p1':
+                self.info_msg = "It's not your turn!!!"
             else:
-                self.info_msg = pp['msg']
+                self.info_msg = "Wait for the AI to play!!!"
+        else:
+            if self.current_player.id == 'p1':
+                self.info_msg = "It's not your turn!!!"
+            else:
+                self.info_msg = ''
+            if self.p2.hex_hand_hover and self.current_player.id == 'p2':
+                self.p2.hex_hand_selected = self.p2.hex_hand_hover
+                pp = get_possible_placements(self.p2.hex_hand_selected.value)
+                if pp['success']:
+                    self.possible_placements = pp['placements']
+                else:
+                    if pp['status_code'] == 400:
+                        self.info_msg = pp['msg']
+                    if pp['status_code'] == 401:
+                        self.info_msg = pp['msg']
+                        stats = get_game_stats()
+                        current_player_id = stats[0]
+                        if current_player_id == 'p1':
+                            self.current_player = self.p1
+                        elif current_player_id == 'p2':
+                            self.current_player = self.p2
 
     def loadImgs(self):
         self.insect_images = {
