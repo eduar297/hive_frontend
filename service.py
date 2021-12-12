@@ -18,8 +18,14 @@ class Player():
 
 
 def play_ai():
-    print('Play AI')
-    return True
+    res = requests.post(f'{URL}/ai/play').json()
+    status_code = res['status_code']
+    msg = res['msg']
+    if status_code == 200:
+        return {'success': True, 'msg': msg, 'status_code': status_code}
+    elif status_code == 400:
+        return {'success': False, 'msg': msg, 'status_code': status_code}
+
 
 
 def get_game_stats():
@@ -49,13 +55,13 @@ def get_queen_surrounded():
     status_code = res['status_code']
     msg = res['msg']
     if status_code == 200:
-        pass
+        return {'success': False, 'msg': res['msg'], 'status_code': status_code}
     elif status_code == 201:
-        pass
+        return {'success': True, 'msg': res['msg'], 'status_code': status_code}
     elif status_code == 202:
-        pass
+        return {'success': True, 'msg': res['msg'], 'status_code': status_code}
     elif status_code == 203:
-        pass
+        return {'success': True, 'msg': res['msg'], 'status_code': status_code}
 
 
 def get_possible_placements(type):

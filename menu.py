@@ -153,9 +153,9 @@ class OptionsMenu(Menu):
         Menu.__init__(self, game, -130)
         self.lvl0x, self.lvl0y = self.mid_w, self.mid_h+50
         self.lvl1x, self.lvl1y = self.mid_w, self.mid_h+90
-        self.lvl2x, self.lvl2y = self.mid_w, self.mid_h+130
-        self.lvl3x, self.lvl3y = self.mid_w, self.mid_h+170
-        self.infox, self.infoy = self.mid_w, self.mid_h+240
+        # self.lvl2x, self.lvl2y = self.mid_w, self.mid_h+130
+        # self.lvl3x, self.lvl3y = self.mid_w, self.mid_h+170
+        self.infox, self.infoy = self.mid_w, self.mid_h+160
         try:
             open('config.json')
             with open('config.json') as file:
@@ -180,11 +180,10 @@ class OptionsMenu(Menu):
             self.game.draw_text('Hive', 80, self.mid_w, 120, self.game.YELLOW)
             self.game.draw_text('Difficulty level', 35,
                                 self.mid_w, self.mid_h-20)
-            self.game.draw_text('Easy', 25, self.lvl0x, self.lvl0y)
-            self.game.draw_text('Medium', 25, self.lvl1x, self.lvl1y)
-            self.game.draw_text('Hard', 25, self.lvl2x, self.lvl2y)
-            self.game.draw_text('Expert', 25, self.lvl3x,
-                                self.lvl3y, self.game.PALETTE[0])
+            self.game.draw_text('Easy', 25, self.lvl0x, self.lvl0y, self.game.PALETTE[1])
+            self.game.draw_text('Medium', 25, self.lvl1x, self.lvl1y, self.game.PALETTE[0])
+            # self.game.draw_text('Hard', 25, self.lvl2x, self.lvl2y)
+            # self.game.draw_text('Expert', 25, self.lvl3x,self.lvl3y, self.game.PALETTE[0])
             self.game.draw_text('Press enter key to save or backspace to return',
                                 15, self.infox, self.infoy, color=self.game.RED)
             self.draw_cursor()
@@ -198,33 +197,33 @@ class OptionsMenu(Menu):
                 self.state = 'lvl1'
             elif self.state == 'lvl1':
                 self.cursor_rect.midtop = (
-                    self.lvl2x+self.offset, self.lvl2y)
-                self.state = 'lvl2'
-            elif self.state == 'lvl2':
-                self.cursor_rect.midtop = (
-                    self.lvl3x+self.offset, self.lvl3y)
-                self.state = 'lvl3'
-            elif self.state == 'lvl3':
-                self.cursor_rect.midtop = (
                     self.lvl0x+self.offset, self.lvl0y)
                 self.state = 'lvl0'
+            # elif self.state == 'lvl2':
+            #     self.cursor_rect.midtop = (
+            #         self.lvl3x+self.offset, self.lvl3y)
+            #     self.state = 'lvl3'
+            # elif self.state == 'lvl3':
+            #     self.cursor_rect.midtop = (
+            #         self.lvl0x+self.offset, self.lvl0y)
+            #     self.state = 'lvl0'
         elif self.game.UP_KEY:
-            if self.state == 'lvl3':
-                self.cursor_rect.midtop = (
-                    self.lvl2x+self.offset, self.lvl2y)
-                self.state = 'lvl2'
-            elif self.state == 'lvl2':
-                self.cursor_rect.midtop = (
-                    self.lvl1x+self.offset, self.lvl1y)
-                self.state = 'lvl1'
-            elif self.state == 'lvl1':
+            # if self.state == 'lvl3':
+            #     self.cursor_rect.midtop = (
+            #         self.lvl2x+self.offset, self.lvl2y)
+            #     self.state = 'lvl2'
+            # elif self.state == 'lvl2':
+            #     self.cursor_rect.midtop = (
+            #         self.lvl1x+self.offset, self.lvl1y)
+            #     self.state = 'lvl1'
+            if self.state == 'lvl1':
                 self.cursor_rect.midtop = (
                     self.lvl0x+self.offset, self.lvl0y)
                 self.state = 'lvl0'
             elif self.state == 'lvl0':
                 self.cursor_rect.midtop = (
-                    self.lvl3x+self.offset, self.lvl3y)
-                self.state = 'lvl3'
+                    self.lvl1x+self.offset, self.lvl1y)
+                self.state = 'lvl1'
 
     def check_input(self):
         self.move_cursor()
@@ -256,7 +255,7 @@ class CreditsMenu(Menu):
 
             self.game.draw_text('Hive', 80, self.mid_w, 120, self.game.YELLOW)
             self.game.draw_text('Credits', 35, self.mid_w, self.mid_h-20)
-            self.game.draw_text('Made by Eduar2 and Andy',
+            self.game.draw_text('Made by Eduar2 Andy Yadiel',
                                 25, self.creditsx, self.creditsy)
             self.game.draw_text('Press enter or backspace key to go back',
                                 15, self.infox, self.infoy, color=self.game.RED)

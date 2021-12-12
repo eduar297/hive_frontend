@@ -1,8 +1,8 @@
 {
-    "level": 3,
+    "level": 1,
     "level_coordenates": {
         "x": 520,
-        "y": 515
+        "y": 435
     },
-    "level_state": "lvl3"
+    "level_state": "lvl1"
 }

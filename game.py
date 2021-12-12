@@ -22,9 +22,7 @@ COLOR5 = (152, 206, 0)
 LEVELS = {'lvl0': 0, 'lvl1': 1, 'lvl2': 2,
           'lvl3': 3}
 
-
 LEFT, RIGHT = 1, 3
-
 
 class Game():
     def __init__(self):
@@ -52,6 +50,8 @@ class Game():
             self.DISPLAY_W*10/100, self.DISPLAY_H*10/100, self.DISPLAY_W*80/100, self.DISPLAY_H*90/100)
         self.rect_arrow_region = pygame.Rect(
             self.DISPLAY_W*90/100, 0, self.DISPLAY_W*10/100, self.DISPLAY_H*10/100)
+        self.rect_menu_up_btn_left = pygame.Rect(
+            0, 0, self.DISPLAY_W*10/100, self.DISPLAY_H*10/100)
 
         self.display = pygame.Surface((self.DISPLAY_W, self.DISPLAY_H))
         self.window = pygame.display.set_mode(
@@ -68,13 +68,14 @@ class Game():
         self.credits_menu = CreditsMenu(self)
         self.curr_menu = self.main_menu
 
-        self.insect_images = None
+        self.images = None
 
         # load default config
         self.load_config()
         self.mode = 'pvp'
 
         # game stats
+        self.game_over = False
         self.info_msg = ''
         self.hexagon_size = 45
         self.hexagon_hand_size = 29
@@ -253,7 +254,7 @@ class Game():
         config['level_coordenates'] = level_coordenates
         config['level_state'] = level_state
         with open('config.json', 'w') as file:
-                json.dump(config, file, indent=4)
+            json.dump(config, file, indent=4)
 
     def game_loop(self):
         new_game(self.mode, self.level)
@@ -262,6 +263,7 @@ class Game():
         self.current_region = None
         self.hex_selected = None
         self.hex_hover = None
+        self.game_over = False
         stats = get_game_stats()
         self.p1 = stats[1]
         self.p2 = stats[2]
@@ -275,6 +277,7 @@ class Game():
 
         self.update_stats(self.p1)
         self.update_stats(self.p2)
+
         while self.playing:
             self.check_events()
             if self.BACK_KEY:
@@ -316,24 +319,24 @@ class Game():
             pygame.display.update()
             self.reset_keys()
 
-        self.info_msg = ""
-        self.hexagon_size = 40
-        self.current_region = None
-        self.hex_selected = None
-        self.hex_hover = None
-        stats = get_game_stats()
-        self.p1 = stats[1]
-        self.p2 = stats[2]
-        self.hive = stats[3]
-        current_player_id = stats[0]
-        self.current_player = self.p1 if current_player_id == 'p1' else self.p2
-        self.hexagon_hand_size = self.hexagon_size - 11
+        # self.info_msg = ""
+        # self.hexagon_size = 40
+        # self.current_region = None
+        # self.hex_selected = None
+        # self.hex_hover = None
+        # stats = get_game_stats()
+        # self.p1 = stats[1]
+        # self.p2 = stats[2]
+        # self.hive = stats[3]
+        # current_player_id = stats[0]
+        # self.current_player = self.p1 if current_player_id == 'p1' else self.p2
+        # self.hexagon_hand_size = self.hexagon_size - 11
 
-        self.possible_placements = None
-        self.possible_moves = None
+        # self.possible_placements = None
+        # self.possible_moves = None
 
-        self.update_stats(self.p1)
-        self.update_stats(self.p2)
+        # self.update_stats(self.p1)
+        # self.update_stats(self.p2)
 
     def offset_coordinates(self, dir):
         size = self.hexagon_size
@@ -368,20 +371,21 @@ class Game():
         self.current_region = region[0]
 
     def handle_mouse_click(self):
-        if self.current_region == 'center':
+        if self.current_region == 'center' and not self.game_over:
             self.handle_board_mouse_click()
         if self.current_region == 'up':
-            self.info_msg = ''
+            if not self.game_over:
+                self.info_msg = ''
             self.possible_placements = None
             self.possible_moves = None
             self.hex_selected = None
             self.p1.hex_hand_selected = None
             self.p2.hex_hand_selected = None
-        if self.current_region == 'left':
+        if self.current_region == 'left' and not self.game_over:
             self.handle_left_mouse_click()
             self.hex_selected = None
             self.p2.hex_hand_selected = None
-        if self.current_region == 'right':
+        if self.current_region == 'right' and not self.game_over:
             self.handle_right_mouse_click()
             self.hex_selected = None
             self.p1.hex_hand_selected = None
@@ -504,7 +508,7 @@ class Game():
 
                 img_size = 110/100*size
                 picture = pygame.transform.scale(
-                    self.insect_images[type], [img_size, img_size])
+                    self.images[type], [img_size, img_size])
                 hive.append([h1, h2, img_size, picture, D[hex.point.point]])
 
         for h in hive:
@@ -576,6 +580,7 @@ class Game():
                        rect.centerx, rect.centery+10, self.RED, self.font_name_default)
 
         self.draw_menu_btn()
+        self.draw_menu_up_left_btn()
 
     def draw_menu_left(self):
         rect = self.rect_left_region
@@ -597,7 +602,7 @@ class Game():
             # self.draw_text(h.value, 8, h.center.x, h.center.y,
             #                self.WHITE, self.font_name_default)
             picture = pygame.transform.scale(
-                self.insect_images[h.value], [img_size, img_size])
+                self.images[h.value], [img_size, img_size])
             self.display.blit(
                 picture, [h.center.x-img_size/2, h.center.y-img_size/2])
 
@@ -640,7 +645,7 @@ class Game():
             # self.draw_text(h.value, 8, h.center.x, h.center.y,
             #                self.WHITE, self.font_name_default)
             picture = pygame.transform.scale(
-                self.insect_images[h.value], [img_size, img_size])
+                self.images[h.value], [img_size, img_size])
             self.display.blit(
                 picture, [h.center.x-img_size/2, h.center.y-img_size/2])
 
@@ -663,11 +668,60 @@ class Game():
                         self.display, self.PALETTE[3], h.center.point, 5, 1)
                     break
 
+    def draw_menu_up_left_btn(self):
+        r = self.rect_menu_up_btn_left
+        pygame.draw.rect(self.display, self.WHITE, r, 1)
+
+        size = r.h*50/100
+        back_btn = pygame.Rect(0, 0, size+5, size)
+        reset_btn = pygame.Rect(0, 0, size+5, size)
+
+        back_btn.center = (r.centerx-size/2-5, r.centery)
+        reset_btn.center = (r.centerx+size/2+5, r.centery)
+
+        pygame.draw.rect(self.display, self.PALETTE[2], back_btn, 0)
+        pygame.draw.rect(self.display, self.PALETTE[2], reset_btn, 0)
+
+        img_size1 = 110/100*size
+        img_size2 = 100/100*size
+
+        img_back = pygame.transform.scale(self.images['arrow'], [img_size1, img_size1])
+        img_reset = pygame.transform.scale(self.images['reset'], [img_size2, img_size2])
+        img_back = pygame.transform.rotate(img_back, 180)
+
+        self.display.blit(img_back, [back_btn.centerx-img_size1/2, back_btn.centery-img_size1/2])
+        self.display.blit(img_reset, [reset_btn.centerx-img_size2/2, reset_btn.centery-img_size2/2])
+
+
+        if self.LEFT_CLICK_KEY:
+            if back_btn.collidepoint(self.MOUSE_POS):
+                self.playing = False
+            elif reset_btn.collidepoint(self.MOUSE_POS):
+                new_game(self.mode, self.level)
+                self.info_msg = ""
+                self.hexagon_size = 40
+                self.current_region = None
+                self.hex_selected = None
+                self.hex_hover = None
+                self.game_over = False
+                stats = get_game_stats()
+                self.p1 = stats[1]
+                self.p2 = stats[2]
+                self.hive = stats[3]
+                current_player_id = stats[0]
+                self.current_player = self.p1 if current_player_id == 'p1' else self.p2
+                self.hexagon_hand_size = self.hexagon_size - 11
+
+                self.possible_placements = None
+                self.possible_moves = None
+
+                self.update_stats(self.p1)
+                self.update_stats(self.p2)
+
     def draw_menu_btn(self):
         r = self.rect_arrow_region
 
-        pygame.draw.rect(self.display, self.WHITE,
-                         r, 1)
+        pygame.draw.rect(self.display, self.WHITE, r, 1)
         size = r.h*40/100
 
         top_btn = pygame.Rect(0, 0, size, size)
@@ -710,19 +764,43 @@ class Game():
         pygame.draw.rect(self.display, self.WHITE, zoom_in_btn, 0)
         pygame.draw.rect(self.display, self.WHITE, zoom_out_btn, 0)
 
-        self.draw_text('U', 15,  top_btn.centerx, top_btn.centery,
-                       self.PALETTE[0], self.font_name_default)
-        self.draw_text('D', 15,  bottom_btn.centerx,
-                       bottom_btn.centery, self.PALETTE[0], self.font_name_default)
-        self.draw_text('L', 15,  left_btn.centerx,
-                       left_btn.centery, self.PALETTE[0], self.font_name_default)
-        self.draw_text('R', 15,  right_btn.centerx,
-                       right_btn.centery, self.PALETTE[0], self.font_name_default)
+        # self.draw_text('U', 15,  top_btn.centerx, top_btn.centery,
+        #                self.PALETTE[0], self.font_name_default)
+        # self.draw_text('D', 15,  bottom_btn.centerx,
+        #                bottom_btn.centery, self.PALETTE[0], self.font_name_default)
+        # self.draw_text('L', 15,  left_btn.centerx,
+        #                left_btn.centery, self.PALETTE[0], self.font_name_default)
+        # self.draw_text('R', 15,  right_btn.centerx,
+        #                right_btn.centery, self.PALETTE[0], self.font_name_default)
 
         self.draw_text('+', 12,  zoom_in_btn.centerx,
                        zoom_in_btn.centery, self.BLACK, self.font_name_default)
         self.draw_text('-', 12,  zoom_out_btn.centerx,
                        zoom_out_btn.centery, self.BLACK, self.font_name_default)
+
+        img_size = 110/100*size
+
+        img_left = pygame.transform.scale(
+            self.images['arrow'], [img_size, img_size])
+        img_right = pygame.transform.scale(
+            self.images['arrow'], [img_size, img_size])
+        img_up = pygame.transform.scale(
+            self.images['arrow'], [img_size, img_size])
+        img_down = pygame.transform.scale(
+            self.images['arrow'], [img_size, img_size])
+
+        img_left = pygame.transform.rotate(img_left, 180)
+        img_up = pygame.transform.rotate(img_left, 270)
+        img_down = pygame.transform.rotate(img_left, 90)
+
+        self.display.blit(
+            img_left, [left_btn.centerx-img_size/2, left_btn.centery-img_size/2])
+        self.display.blit(
+            img_right, [right_btn.centerx-img_size/2, right_btn.centery-img_size/2])
+        self.display.blit(
+            img_up, [top_btn.centerx-img_size/2, top_btn.centery-img_size/2])
+        self.display.blit(
+            img_down, [bottom_btn.centerx-img_size/2, bottom_btn.centery-img_size/2])
 
     def handle_btn(self, btn):
         if btn == 'L':
@@ -851,6 +929,14 @@ class Game():
                 insect = self.get_insects_in_hex(self.hexagon_ori)
                 move_insect(
                     insect, insect[3], pm)
+
+                moved = True
+
+                self.possible_placements = None
+                self.possible_moves = None
+                self.hexagon_ori = None
+                self.info_msg = ''
+
                 # game stats
                 stats = get_game_stats()
                 current_player_id = stats[0]
@@ -864,17 +950,35 @@ class Game():
                     self.p1 = stats[1]
                     self.update_stats(self.p1)
                     self.current_player = self.p2
-                self.possible_placements = None
-                self.possible_moves = None
-                self.hexagon_ori = None
-                moved = True
-                self.info_msg = ''
+
+                # game over?
+                qs = get_queen_surrounded()
+                if qs['status_code'] != 200:
+                    self.info_msg = qs['msg']
+                    self.game_over = True
+                    break
 
                 if self.mode == 'pvai':
-                    canPlay =  play_ai()
+                    self.info_msg = 'AI is thinking... ... ...'
+                    ai = play_ai()
+                    self.info_msg = ai['msg']
+
+                    stats = get_game_stats()
+                    current_player_id = stats[0]
+                    self.hive = stats[3]
+                    self.p2 = stats[2]
+                    self.update_stats(self.p2)
+                    self.current_player = self.p1
+
+                    # game over?
+                    qs = get_queen_surrounded()
+                    if qs['status_code'] != 200:
+                        self.info_msg = qs['msg']
+                        self.game_over = True
+                        break
 
                 break
-        if not moved:
+        if not moved and not self.game_over:
             self.info_msg = 'Wrong place!!!'
 
     # place an insect if it is a valid position
@@ -901,14 +1005,34 @@ class Game():
                 self.possible_placements = None
                 placed = True
                 self.info_msg = ''
+                # game over?
+                qs = get_queen_surrounded()
+                if qs['status_code'] != 200:
+                    self.info_msg = qs['msg']
+                    self.game_over = True
+                    break
 
                 if self.mode == 'pvai':
                     self.info_msg = 'AI is thinking... ... ...'
-                    canPlay =  play_ai()
+                    ai = play_ai()
+                    self.info_msg = ai['msg']
 
+                    stats = get_game_stats()
+                    current_player_id = stats[0]
+                    self.hive = stats[3]
+                    self.p2 = stats[2]
+                    self.update_stats(self.p2)
+                    self.current_player = self.p1
+
+                    # game over?
+                    qs = get_queen_surrounded()
+                    if qs['status_code'] != 200:
+                        self.info_msg = qs['msg']
+                        self.game_over = True
+                        break
 
                 break
-        if not placed:
+        if not placed and not self.game_over:
             self.info_msg = 'Wrong place!!!'
 
     def handle_left_mouse_click(self):
@@ -966,7 +1090,7 @@ class Game():
                             self.current_player = self.p2
 
     def loadImgs(self):
-        self.insect_images = {
+        self.images = {
             'queen_bee': pygame.image.load('./img/queen_bee.png'),
             'beetle': pygame.image.load('./img/beetle.png'),
             'grasshopper': pygame.image.load('./img/grasshopper.png'),
@@ -974,7 +1098,9 @@ class Game():
             'soldier_ant': pygame.image.load('./img/soldier_ant.png'),
             'ladybug': pygame.image.load('./img/ladybug.png'),
             'mosquito': pygame.image.load('./img/mosquito.png'),
-            'pillbug': pygame.image.load('./img/pillbug.png')
+            'pillbug': pygame.image.load('./img/pillbug.png'),
+            'arrow': pygame.image.load('./img/arrow.png'),
+            'reset': pygame.image.load('./img/reset.png')
         }
 
     def zoom(self, dir):
